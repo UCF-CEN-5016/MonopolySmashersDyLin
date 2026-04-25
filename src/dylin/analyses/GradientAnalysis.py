@@ -1,3 +1,6 @@
+"""
+Module for GradientAnalysis functionality.
+"""
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import collections
 
@@ -11,7 +14,19 @@ import torch
 
 
 class GradientAnalysis(BaseDyLinAnalysis):
+    """
+Gradientanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    stored_torch_models: Local state member.
+    threshold: Local state member.
+    total_gradients_investigated: Local state member.
+"""
         super().__init__(**kwargs)
         self.analysis_name = "GradientAnalysis"
         # common clipping values are 1,3,5,8,10
@@ -21,14 +36,37 @@ class GradientAnalysis(BaseDyLinAnalysis):
 
         def cleanup_torch_model(uuid: str):
             """
-            removes model uuid as soon as gc collects it
-            """
+Cleanup torch model: implementation of the cleanup_torch_model logic.
+
+Args:
+    uuid: Operational parameter.
+"""
             if not self.stored_torch_models.get(uuid) is None:
                 del self.stored_torch_models[uuid]
 
         add_cleanup_hook(cleanup_torch_model)
 
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict):
+        """
+Pre call: implementation of the pre_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    _max: Local state member.
+    _min: Local state member.
+    grad: Local state member.
+    gradients: Local state member.
+    total_gradients_investigated: Local state member.
+
+Loop Behavior:
+    Iterates through range(0, len(gradients)).
+"""
         # tensorflow
         # print(f"{self.analysis_name} pre_call {iid}")
         if "__func__" in dir(function) and function.__func__ == tf.optimizers.Optimizer.apply_gradients:
@@ -65,6 +103,35 @@ class GradientAnalysis(BaseDyLinAnalysis):
         pos_args: Tuple,
         kw_args: Dict,
     ) -> Any:
+        """
+Post call: implementation of the post_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    val: Operational parameter.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    _max: Local state member.
+    _min: Local state member.
+    _self: Local state member.
+    grads: Local state member.
+    model: Local state member.
+    params: Local state member.
+    ref: Local state member.
+    total_gradients_investigated: Local state member.
+    uuid: Local state member.
+
+Loop Behavior:
+    Iterates through self.stored_torch_models.
+    Iterates through grads.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} post_call {iid}")
         if val is function:
             return
@@ -105,5 +172,11 @@ class GradientAnalysis(BaseDyLinAnalysis):
                                     return
 
     def end_execution(self) -> None:
+        """
+End execution: implementation of the end_execution logic.
+
+Returns:
+    Standard result object.
+"""
         self.add_meta({"total_gradients_investigated": self.total_gradients_investigated})
         super().end_execution()

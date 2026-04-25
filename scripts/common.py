@@ -1,6 +1,18 @@
+"""
+Module for common functionality.
+"""
 import subprocess
 
 def install_special(url):
+    """
+Install special: implementation of the install_special logic.
+
+Args:
+    url: Operational parameter.
+
+Key Variables:
+    command: Local state member.
+"""
     if url == "https://github.com/lorien/grab.git":
         command = "pip install cssselect pyquery pymongo fastrq"  # required for running tests
     elif url == "https://github.com/psf/black.git":

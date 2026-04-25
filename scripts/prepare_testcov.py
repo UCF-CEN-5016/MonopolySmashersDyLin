@@ -1,3 +1,6 @@
+"""
+Module for prepare_testcov functionality.
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -13,6 +16,12 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def post_process_special(url):
+    """
+Post process special: implementation of the post_process_special logic.
+
+Args:
+    url: Operational parameter.
+"""
     if url == "https://github.com/pallets/click.git":
         (Path("click").resolve() / "tests" / "test_imports.py").unlink(missing_ok=True)
 

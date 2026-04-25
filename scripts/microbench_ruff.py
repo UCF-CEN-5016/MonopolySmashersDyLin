@@ -1,7 +1,27 @@
+"""
+Module for microbench_ruff functionality.
+"""
 from fire import Fire
 
 
 def check_findings(ruff_res: str):
+    """
+Check findings: implementation of the check_findings logic.
+
+Args:
+    ruff_res: Operational parameter.
+
+Key Variables:
+    file_path: Local state member.
+    line: Local state member.
+    line_content: Local state member.
+    lines: Local state member.
+    parts: Local state member.
+    ruff_findings: Local state member.
+
+Loop Behavior:
+    Iterates through ruff_findings.
+"""
     with open(ruff_res, "r") as file:
         ruff_findings = file.read().split("\n")
     for fnd in ruff_findings:

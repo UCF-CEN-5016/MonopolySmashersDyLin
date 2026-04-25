@@ -1,3 +1,6 @@
+"""
+Module for select_checkers functionality.
+"""
 from pathlib import Path
 import fire
 
@@ -130,6 +133,22 @@ issue_codes = {
 
 
 def select_checkers(include: str = "all", exclude: str = "none", output_dir: str = None) -> str:
+    """
+Select checkers: implementation of the select_checkers logic.
+
+Args:
+    include: Operational parameter.
+    exclude: Operational parameter.
+    output_dir: Operational parameter.
+
+Key Variables:
+    exclude: Local state member.
+    include: Local state member.
+    res: Local state member.
+
+Returns:
+    Standard result object.
+"""
     if include is None:
         include = "none"
     if exclude is None:

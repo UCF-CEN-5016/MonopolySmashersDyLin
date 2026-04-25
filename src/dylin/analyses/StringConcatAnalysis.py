@@ -1,3 +1,6 @@
+"""
+Module for StringConcatAnalysis functionality.
+"""
 from ast import List
 from operator import ne
 from typing import Any
@@ -25,7 +28,20 @@ Discussion:
 
 
 class StringConcatAnalysis(BaseDyLinAnalysis):
+    """
+Stringconcatanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    adds: Local state member.
+    analysis_name: Local state member.
+    concats: Local state member.
+    last_add_operation: Local state member.
+    threshold: Local state member.
+"""
         super().__init__(**kwargs)
         self.concats = {}
         self.adds = {}
@@ -34,11 +50,38 @@ class StringConcatAnalysis(BaseDyLinAnalysis):
         self.threshold = 10000
 
     def add_assign(self, dyn_ast: str, iid: int, left: Any, right: Any) -> None:
+        """
+Add assign: implementation of the add_assign logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    right: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # for some reason left is a lambda
         # print(f"{self.analysis_name} += {iid}")
         self._check(dyn_ast, iid, right)
 
     def _check(self, dyn_ast: str, iid: int, right: Any, result: Any = None) -> None:
+        """
+Check: implementation of the _check logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    right: Operational parameter.
+    result: Operational parameter.
+
+Key Variables:
+    key: Local state member.
+
+Returns:
+    Standard result object.
+"""
         if isinstance(right, type("")):
             key = str(iid) + "_" + dyn_ast
             if key not in self.concats:

@@ -1,3 +1,6 @@
+"""
+Module for analyze_repo functionality.
+"""
 import argparse
 import sys
 from pathlib import Path

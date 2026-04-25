@@ -1,3 +1,6 @@
+"""
+Module for InconsistentPreprocessing functionality.
+"""
 from collections import defaultdict
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
 
@@ -9,7 +12,17 @@ from sklearn.base import BaseEstimator
 
 
 class InconsistentPreprocessing(BaseDyLinAnalysis):
+    """
+Inconsistentpreprocessing: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    markings_storage: Local state member.
+"""
         super().__init__(**kwargs)
         self.analysis_name = "InconsistentPreprocessing"
         # Note: a boolean here is actually enough, we use a set though to allow
@@ -17,16 +30,42 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
         self.markings_storage = defaultdict(set)
 
         def cleanup(x: any):
+            """
+Cleanup: implementation of the cleanup logic.
+
+Args:
+    x: Operational parameter.
+"""
             if x in self.markings_storage:
                 self.markings_storage[x] = set()
 
         add_cleanup_hook(lambda x: cleanup(x))
 
     def read_subscript(self, dyn_ast, iid, base, sl, val):
+        """
+Read subscript: implementation of the read_subscript logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    base: Operational parameter.
+    sl: Operational parameter.
+    val: Operational parameter.
+"""
         if save_uid(base) in self.markings_storage and len(self.markings_storage[save_uid(base)]) != 0:
             self.markings_storage[uniqueid(val)].add("transformed")
 
     def read_attribute(self, dyn_ast, iid, base, name, val):
+        """
+Read attribute: implementation of the read_attribute logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    base: Operational parameter.
+    name: Entity name.
+    val: Operational parameter.
+"""
         if save_uid(base) in self.markings_storage and len(self.markings_storage[save_uid(base)]) != 0:
             self.markings_storage[uniqueid(val)].add("transformed")
 
@@ -39,6 +78,32 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
         pos_args: Tuple,
         kw_args: Dict,
     ) -> Any:
+        """
+Post call: implementation of the post_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    result: Operational parameter.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    _self: Local state member.
+    count: Local state member.
+    func_name: Local state member.
+    in_args: Local state member.
+    is_arg_marked: Local state member.
+    is_result_stored: Local state member.
+
+Loop Behavior:
+    Iterates through in_args.
+    Iterates through result.
+
+Returns:
+    Standard result object.
+"""
         if result is function:
             return
         try:

@@ -1,3 +1,6 @@
+"""
+Module for WrongTypeAddedAnalysis functionality.
+"""
 import types
 from .base_analysis import BaseDyLinAnalysis
 from dynapyt.instrument.filters import only
@@ -26,7 +29,20 @@ function_names = ["append", "extend", "insert", "add"]
 
 
 class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
+    """
+Wrongtypeaddedanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    nmb_add: Local state member.
+    nmb_add_assign: Local state member.
+    nmb_functions: Local state member.
+    threshold: Local state member.
+"""
         super().__init__(**kwargs)
         self.nmb_add = 0
         self.nmb_add_assign = 0
@@ -36,6 +52,25 @@ class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
 
     @only(patterns=function_names)
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args, kw_args):
+        """
+Pre call: implementation of the pre_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    list_or_set: Local state member.
+    nmb_functions: Local state member.
+    odd_type: Local state member.
+    same_type: Local state member.
+    sample: Local state member.
+    type_ok: Local state member.
+    type_to_check: Local state member.
+"""
         # print(f"{self.analysis_name} pre_call {iid}")
         if isinstance(function, types.BuiltinFunctionType) and function.__name__ in function_names:
             list_or_set = function.__self__
@@ -77,11 +112,44 @@ class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
                     )
 
     def add_assign(self, dyn_ast: str, iid: int, left: Any, right: Any) -> Any:
+        """
+Add assign: implementation of the add_assign logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    right: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # for some reason left is a lambda
         # print(f"{self.analysis_name} += {iid}")
         self.add(dyn_ast, iid, left(), right)
 
     def add(self, dyn_ast: str, iid: int, left: Any, right: Any, result: Any = None) -> Any:
+        """
+Add: implementation of the add logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    right: Operational parameter.
+    result: Operational parameter.
+
+Key Variables:
+    homogeneous: Local state member.
+    nmb_add: Local state member.
+    one_type: Local state member.
+    random_subset: Local state member.
+    same_type: Local state member.
+    type_to_check: Local state member.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} + {iid}")
         if isinstance(left, list):
             if len(left) <= self.threshold:
@@ -109,6 +177,12 @@ class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
                 )
 
     def end_execution(self) -> None:
+        """
+End execution: implementation of the end_execution logic.
+
+Returns:
+    Standard result object.
+"""
         self.add_meta(
             {
                 "add": self.nmb_add,

@@ -1,4 +1,7 @@
 # ============================== Define spec ==============================
+"""
+Module for HostnamesTerminatesWithSlash functionality.
+"""
 from .base_analysis import BaseDyLinAnalysis
 from dynapyt.instrument.filters import only
 
@@ -11,8 +14,20 @@ from typing import Callable, Tuple, Dict
 
 
 class HostnamesTerminatesWithSlash(BaseDyLinAnalysis):
+    """
+Hostnamesterminateswithslash: logical component class.
+"""
 
     def __init__(self, **kwargs) -> None:
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+
+Returns:
+    Standard result object.
+"""
         super().__init__(**kwargs)
         self.analysis_name = "HostnamesTerminatesWithSlash"
 
@@ -20,6 +35,25 @@ class HostnamesTerminatesWithSlash(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
+        """
+Pre call: implementation of the pre_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    class_name: Local state member.
+    cls: Local state member.
+    targets: Local state member.
+    url: Local state member.
+
+Returns:
+    Standard result object.
+"""
         # The target class names for monitoring
         targets = ["requests.sessions.Session"]
 

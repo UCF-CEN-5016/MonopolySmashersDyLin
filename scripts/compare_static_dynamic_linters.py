@@ -1,7 +1,29 @@
+"""
+Module for compare_static_dynamic_linters functionality.
+"""
 from fire import Fire
 from pathlib import Path
 
 def compare(static_dir: str, dynamic: str):
+    """
+Compare: implementation of the compare logic.
+
+Args:
+    static_dir: Operational parameter.
+    dynamic: Operational parameter.
+
+Key Variables:
+    dynamic_findings: Local state member.
+    dynamic_issues: Local state member.
+    static_files: Local state member.
+    static_findings: Local state member.
+    static_location: Local state member.
+
+Loop Behavior:
+    Iterates through ("**/results_ruff.txt", "**/results_pylint.txt", "**/results_mypy.txt", "**/results.txt").
+    Iterates through sorted(set(static_files)).
+    Iterates through static_findings.
+"""
     with open(dynamic, "r") as f:
         dynamic_findings = f.read().split("\n")
     dynamic_issues = {":".join(f.split(":")[:2]): ":".join(f.split(":")[2:]) for f in dynamic_findings}

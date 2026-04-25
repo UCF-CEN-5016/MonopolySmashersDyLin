@@ -1,3 +1,6 @@
+"""
+Module for InPlaceSortAnalysis functionality.
+"""
 import traceback
 from .base_analysis import BaseDyLinAnalysis
 from typing import Any, Callable, Dict, Tuple
@@ -25,7 +28,18 @@ Discussion:
 
 
 class InPlaceSortAnalysis(BaseDyLinAnalysis):
+    """
+Inplacesortanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    stored_lists: Local state member.
+    threshold: Local state member.
+"""
         super().__init__(**kwargs)
         self.analysis_name = "InPlaceSortAnalysis"
         self.stored_lists = {}
@@ -33,6 +47,19 @@ class InPlaceSortAnalysis(BaseDyLinAnalysis):
 
     @only(patterns=["sorted"])
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args, kw_args) -> Any:
+        """
+Pre call: implementation of the pre_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} pre_call {iid}")
         if function is sorted:
             # we have to keep the list in memory to keep id(pos_args[0]) stable ? nope!
@@ -44,15 +71,44 @@ class InPlaceSortAnalysis(BaseDyLinAnalysis):
                 }
 
     def read_identifier(self, dyn_ast: str, iid: int, val: Any) -> Any:
+        """
+Read identifier: implementation of the read_identifier logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    val: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} read id {iid} {dyn_ast}")
         if len(self.stored_lists) > 0 and self.is_sortable_inplace(val):
             self.stored_lists.pop(id(val), None)
         return None
 
     def is_sortable_inplace(self, obj):
+        """
+Is sortable inplace: implementation of the is_sortable_inplace logic.
+
+Args:
+    obj: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         return hasattr(obj, "sort") and hasattr(obj, "__len__")
 
     def end_execution(self) -> None:
+        """
+End execution: implementation of the end_execution logic.
+
+Loop Behavior:
+    Iterates through self.stored_lists.items().
+
+Returns:
+    Standard result object.
+"""
         for _, l in self.stored_lists.items():
             self.add_finding(
                 l["iid"],

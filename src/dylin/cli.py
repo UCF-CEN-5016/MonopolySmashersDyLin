@@ -1,3 +1,6 @@
+"""
+Module for cli functionality.
+"""
 import argparse
 import sys
 import tempfile
@@ -12,7 +15,34 @@ _DYLIN_ROOT = Path(__file__).parent.parent.parent.resolve()
 
 
 def instrument_and_run_analysis(project_root, analysis_file, output_dir, setup_cmd, run_command):
-    """Docker-based DynaPyt instrumentation + run, with DyLin pre-installed in the container."""
+    """
+Instrument and run analysis: implementation of the instrument_and_run_analysis logic.
+
+Args:
+    project_root: Operational parameter.
+    analysis_file: Operational parameter.
+    output_dir: Operational parameter.
+    setup_cmd: Operational parameter.
+    run_command: Operational parameter.
+
+Key Variables:
+    _: Local state member.
+    analysis: Local state member.
+    client: Local state member.
+    container: Local state member.
+    content: Local state member.
+    dockerfile_content: Local state member.
+    entrypoint_script: Local state member.
+    final_analysis_file: Local state member.
+    image: Local state member.
+    logs: Local state member.
+
+Loop Behavior:
+    Iterates through logs.
+    Iterates through e.build_logs.
+    Iterates through content.splitlines().
+    Iterates through container.
+"""
     client = docker.from_env(timeout=240)
 
     # Build a Docker image with DynaPyt (DyLin is installed at runtime from mounted source)
@@ -113,6 +143,20 @@ fi
 
 
 def main():
+    """
+Main: implementation of the main logic.
+
+Key Variables:
+    analysis_file: Local state member.
+    args: Local state member.
+    checkers_str: Local state member.
+    output_dir: Local state member.
+    parser: Local state member.
+    project_root: Local state member.
+    run_cmd_list: Local state member.
+    run_command: Local state member.
+    tmp: Local state member.
+"""
     parser = argparse.ArgumentParser(description="DyLin: Dynamic Linter for Python")
     parser.add_argument(
         "--project-root",

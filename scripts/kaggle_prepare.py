@@ -1,3 +1,6 @@
+"""
+Module for kaggle_prepare functionality.
+"""
 from uuid import uuid4
 import argparse
 import datetime
@@ -68,6 +71,17 @@ if not args.only_run:
     """
 
     def dl_kernels(page, page_size, search_kw=args.search):
+        """
+Dl kernels: implementation of the dl_kernels logic.
+
+Args:
+    page: Operational parameter.
+    page_size: Operational parameter.
+    search_kw: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         print(f"searching {page_size} kernels on page {page} for competition {competition}")
         return api.kernels_list(page=page, page_size=page_size, competition=competition, search=search_kw)
 
@@ -126,7 +140,19 @@ if not args.only_run:
     """
 
     class DateTimeEncoder(json.JSONEncoder):
+        """
+Datetimeencoder: logical component class.
+"""
         def default(self, z):
+            """
+Default: implementation of the default logic.
+
+Args:
+    z: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
             if isinstance(z, datetime.datetime):
                 return str(z)
             else:
@@ -144,6 +170,12 @@ if not args.only_run:
     """
 
     def dl_datasets(path: pathlib.Path):
+        """
+Dl datasets: implementation of the dl_datasets logic.
+
+Args:
+    path: File path.
+"""
         try:
             print("creating dir " + str(path))
             path.mkdir(parents=True, exist_ok=True)

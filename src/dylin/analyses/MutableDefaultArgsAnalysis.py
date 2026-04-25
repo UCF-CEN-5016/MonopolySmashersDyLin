@@ -1,3 +1,6 @@
+"""
+Module for MutableDefaultArgsAnalysis functionality.
+"""
 from .base_analysis import BaseDyLinAnalysis
 from typing import Any, Callable, List, Optional, Tuple, Dict
 import traceback
@@ -23,12 +26,36 @@ deliberately.
 
 
 class MutableDefaultArgsAnalysis(BaseDyLinAnalysis):
+    """
+Mutabledefaultargsanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    function_calls: Local state member.
+"""
         super().__init__(**kwargs)
         self.function_calls = {}
         self.analysis_name = "MutableDefaultArgsAnalysis"
 
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args, kw_args):
+        """
+Pre call: implementation of the pre_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    dicts_and_lists: Local state member.
+    prev: Local state member.
+"""
         dicts_and_lists = self.get_dicts_and_lists_as_str(function)
         # we are only interested in [] or {} or set()
         if dicts_and_lists is None:
@@ -52,6 +79,22 @@ class MutableDefaultArgsAnalysis(BaseDyLinAnalysis):
                 )
 
     def get_dicts_and_lists_as_str(self, function: Callable) -> Optional[str]:
+        """
+Get dicts and lists as str: implementation of the get_dicts_and_lists_as_str logic.
+
+Args:
+    function: Operational parameter.
+
+Key Variables:
+    defaults: Local state member.
+    res: Local state member.
+
+Loop Behavior:
+    Iterates through defaults.
+
+Returns:
+    Standard result object.
+"""
         # built in methods do not have defaults
         if not "__defaults__" in dir(function):
             return

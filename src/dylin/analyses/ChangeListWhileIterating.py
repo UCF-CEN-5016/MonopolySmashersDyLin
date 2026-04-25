@@ -1,13 +1,41 @@
+"""
+Module for ChangeListWhileIterating functionality.
+"""
 from typing import Any, Iterable, Iterator, List, Optional
 from .base_analysis import BaseDyLinAnalysis
 import collections
 
 
 class ChangeListWhileIterating(BaseDyLinAnalysis):
+    """
+Changelistwhileiterating: logical component class.
+"""
     # PyLint has a check for this, code W4701
     # PyLint also has checks for dictionaries and sets (E4702, E4703). These seem more severe than the list check
     class ListMeta:
+        """
+Listmeta: logical component class.
+"""
         def __init__(self, l: Iterable, it: Iterator, length: int, dyn_ast: str, iid: int, warned: bool = False):
+            """
+Init: implementation of the __init__ logic.
+
+Args:
+    l: Operational parameter.
+    it: Operational parameter.
+    length: Operational parameter.
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    warned: Operational parameter.
+
+Key Variables:
+    dyn_ast: Local state member.
+    iid: Local state member.
+    it: Local state member.
+    l: Local state member.
+    length: Local state member.
+    warned: Local state member.
+"""
             self.l = l
             self.it = it
             self.length = length
@@ -16,11 +44,37 @@ class ChangeListWhileIterating(BaseDyLinAnalysis):
             self.iid = iid
 
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    iterator_stack: Local state member.
+"""
         super(ChangeListWhileIterating, self).__init__(**kwargs)
         self.analysis_name = "ChangeListWhileIterating"
         self.iterator_stack: List[self.ListMeta] = []
 
     def enter_for(self, dyn_ast: str, iid: int, next_value: Any, iterable: Iterable, iterator: Iterator) -> Optional[Any]:
+        """
+Enter for: implementation of the enter_for logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    next_value: Operational parameter.
+    iterable: Operational parameter.
+    iterator: Operational parameter.
+
+Key Variables:
+    _list: Local state member.
+    length: Local state member.
+    list_meta: Local state member.
+    warned: Local state member.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} enter_for {iid}")
         if isinstance(iterable, collections.abc.Iterator) or isinstance(iterable, type({})):
             return
@@ -57,6 +111,13 @@ class ChangeListWhileIterating(BaseDyLinAnalysis):
             print(e)
 
     def exit_for(self, dyn_ast, iid):
+        """
+Exit for: implementation of the exit_for logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+"""
         # print(f"{self.analysis_name} exit_for {iid}")
         if len(self.iterator_stack) > 0:
             self.iterator_stack.pop()

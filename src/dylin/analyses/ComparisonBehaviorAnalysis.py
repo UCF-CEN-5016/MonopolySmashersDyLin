@@ -1,3 +1,6 @@
+"""
+Module for ComparisonBehaviorAnalysis functionality.
+"""
 from typing import Any
 import operator
 from .base_analysis import BaseDyLinAnalysis
@@ -5,7 +8,19 @@ import numpy as np
 
 
 class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
+    """
+Comparisonbehavioranalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    cache: Local state member.
+    excluded_types: Local state member.
+    stack_levels: Local state member.
+"""
         super().__init__(**kwargs)
         self.analysis_name = "ComparisonBehaviorAnalysis"
         self.excluded_types = [type(0.0), type(None)]
@@ -25,6 +40,15 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
     """
 
     def is_excluded(self, val: any) -> bool:
+        """
+Is excluded: implementation of the is_excluded logic.
+
+Args:
+    val: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         return (
             type(val) is int
             or type(val) is float
@@ -40,14 +64,54 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
         )
 
     def equal(self, dyn_ast: str, iid: int, left: Any, right: Any, result: Any) -> bool:
+        """
+Equal: implementation of the equal logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    right: Operational parameter.
+    result: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} equal {iid}")
         self.check_all(dyn_ast, iid, left, "Equal", right, result)
 
     def not_equal(self, dyn_ast: str, iid: int, left: Any, right: Any, result: Any) -> bool:
+        """
+Not equal: implementation of the not_equal logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    right: Operational parameter.
+    result: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} not equal {iid}")
         self.check_all(dyn_ast, iid, left, "NotEqual", right, result)
 
     def check_all(self, dyn_ast: str, iid: int, left: Any, op: str, right: Any, result: Any) -> bool:
+        """
+Check all: implementation of the check_all logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    left: Operational parameter.
+    op: Operational parameter.
+    right: Operational parameter.
+    result: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         if op != "Equal" and op != "NotEqual":
             return None
 
@@ -97,12 +161,42 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
             return
 
     def check_reflexivity(self, left) -> bool:
+        """
+Check reflexivity: implementation of the check_reflexivity logic.
+
+Args:
+    left: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         return left != left
 
     def check_identity(self, left: Any) -> bool:
+        """
+Check identity: implementation of the check_identity logic.
+
+Args:
+    left: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         return left is not None and left == None
 
     def check_symmetry(self, left: Any, right: Any, op: Any, res: bool) -> bool:
+        """
+Check symmetry: implementation of the check_symmetry logic.
+
+Args:
+    left: Operational parameter.
+    right: Operational parameter.
+    op: Operational parameter.
+    res: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # (3 == 4) == (4 == 3)
         if op == "Equal":
             return not ((left == right) == (right == left) == res)
@@ -110,6 +204,21 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
             return not ((left != right) == (right != left) == res)
 
     def check_stability(self, left: Any, right: Any, op: Any, normal: bool) -> bool:
+        """
+Check stability: implementation of the check_stability logic.
+
+Args:
+    left: Operational parameter.
+    right: Operational parameter.
+    op: Operational parameter.
+    normal: Operational parameter.
+
+Loop Behavior:
+    Iterates through range(3).
+
+Returns:
+    Standard result object.
+"""
         for _ in range(3):
             if op == "Equal":
                 if (left == right) != normal:

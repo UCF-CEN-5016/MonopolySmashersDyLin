@@ -1,3 +1,6 @@
+"""
+Module for baseline_repo functionality.
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -12,6 +15,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def install_special(url):
+    """
+Install special: implementation of the install_special logic.
+
+Args:
+    url: Operational parameter.
+
+Key Variables:
+    command: Local state member.
+"""
     if url == "https://github.com/lorien/grab.git":
         command = "pip install cssselect pyquery pymongo fastrq"  # required for running tests
     elif url == "https://github.com/psf/black.git":
@@ -43,6 +55,12 @@ def install_special(url):
 
 
 def post_process_special(url):
+    """
+Post process special: implementation of the post_process_special logic.
+
+Args:
+    url: Operational parameter.
+"""
     if url == "https://github.com/pallets/click.git":
         (Path("click").resolve() / "tests" / "test_imports.py").unlink(missing_ok=True)
 

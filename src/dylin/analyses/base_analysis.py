@@ -1,3 +1,6 @@
+"""
+Module for base_analysis functionality.
+"""
 import logging
 import os
 from typing import Any, Dict, Optional
@@ -13,7 +16,26 @@ from filelock import FileLock
 
 
 class BaseDyLinAnalysis(BaseAnalysis):
+    """
+Basedylinanalysis: logical component class.
+"""
     def __init__(self, **kwargs) -> None:
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    findings: Local state member.
+    log: Local state member.
+    meta: Local state member.
+    number_findings: Local state member.
+    number_unique_findings_possible: Local state member.
+    path: Local state member.
+    stack_levels: Local state member.
+    unique_id: Local state member.
+
+Returns:
+    Standard result object.
+"""
         super().__init__(**kwargs)
         self.unique_id = str(uuid.uuid4())
         self.findings = {}
@@ -30,6 +52,9 @@ class BaseDyLinAnalysis(BaseAnalysis):
         print(f"$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Loaded analysis {self.analysis_name if hasattr(self, 'analysis_name') else 'no name'} writing to {self.output_dir}")
 
     def setup(self):
+        """
+Setup: implementation of the setup logic.
+"""
         # Hook for subclasses
         pass
 
@@ -40,6 +65,23 @@ class BaseDyLinAnalysis(BaseAnalysis):
         name: Optional[str] = "placeholder name",
         msg: Optional[str] = None,
     ) -> None:
+        """
+Add finding: implementation of the add_finding logic.
+
+Args:
+    iid: Instruction identifier.
+    filename: Source file name.
+    name: Entity name.
+    msg: Informational message.
+
+Key Variables:
+    location: Local state member.
+    number_findings: Local state member.
+    stacktrace: Local state member.
+
+Returns:
+    Standard result object.
+"""
         print(f"########################### Found something")
         self.number_findings += 1
         stacktrace = "".join(traceback.format_stack()[-self.stack_levels :])
@@ -50,6 +92,15 @@ class BaseDyLinAnalysis(BaseAnalysis):
             self.findings[name].append(self._create_error_msg(iid, location, stacktrace, msg))
 
     def get_result(self) -> Any:
+        """
+Get result: implementation of the get_result logic.
+
+Key Variables:
+    findings: Local state member.
+
+Returns:
+    Standard result object.
+"""
         findings = self._format_issues(self.findings)
         if len(findings) == 0:
             return None
@@ -67,12 +118,33 @@ class BaseDyLinAnalysis(BaseAnalysis):
     """
 
     def is_sane(self) -> bool:
+        """
+Is sane: implementation of the is_sane logic.
+
+Key Variables:
+    res: Local state member.
+
+Loop Behavior:
+    Iterates through self.findings.items().
+
+Returns:
+    Standard result object.
+"""
         res = 0
         for name, value in self.findings.items():
             res += len(value)
         return self.number_findings == res
 
     def add_meta(self, meta: any):
+        """
+Add meta: implementation of the add_meta logic.
+
+Args:
+    meta: Operational parameter.
+
+Key Variables:
+    meta: Local state member.
+"""
         self.meta = meta
 
     def _create_error_msg(
@@ -82,6 +154,18 @@ class BaseDyLinAnalysis(BaseAnalysis):
         stacktrace: Optional[str] = None,
         msg: Optional[str] = None,
     ) -> Any:
+        """
+Create error msg: implementation of the _create_error_msg logic.
+
+Args:
+    iid: Instruction identifier.
+    location: Source code location.
+    stacktrace: Operational parameter.
+    msg: Informational message.
+
+Returns:
+    Standard result object.
+"""
         return {
             "msg": msg,
             "trace": stacktrace,
@@ -92,6 +176,23 @@ class BaseDyLinAnalysis(BaseAnalysis):
         }
 
     def _format_issues(self, findings: Dict) -> Dict:
+        """
+Format issues: implementation of the _format_issues logic.
+
+Args:
+    findings: Operational parameter.
+
+Key Variables:
+    found_iids: Local state member.
+    res: Local state member.
+
+Loop Behavior:
+    Iterates through findings.
+    Iterates through findings[name].
+
+Returns:
+    Standard result object.
+"""
         res = {}
         for name in findings:
             found_iids = {}
@@ -104,9 +205,27 @@ class BaseDyLinAnalysis(BaseAnalysis):
         return res
 
     def get_unique_findings(self):
+        """
+Get unique findings: implementation of the get_unique_findings logic.
+
+Returns:
+    Standard result object.
+"""
         return self._format_issues(self.findings)
 
     def _write_detailed_results(self):
+        """
+Write detailed results: implementation of the _write_detailed_results logic.
+
+Key Variables:
+    filename: Local state member.
+    result: Local state member.
+    temp_res: Local state member.
+    unique_id: Local state member.
+
+Loop Behavior:
+    Loops while (self.path / filename).exists().
+"""
         print(f"$$$$$$$$$$$$$$$$$$$$$ Writing results of {self.analysis_name if hasattr(self, 'analysis_name') else 'noe name'}")
         temp_res = self.get_result()
         if temp_res is not None:
@@ -128,6 +247,22 @@ class BaseDyLinAnalysis(BaseAnalysis):
                 report.write(json.dumps(result, indent=4))
 
     def _write_overview(self):
+        """
+Write overview: implementation of the _write_overview logic.
+
+Key Variables:
+    csv_row: Local state member.
+    csv_rows: Local state member.
+    existed: Local state member.
+    reader: Local state member.
+    results: Local state member.
+    row_findings: Local state member.
+    writer: Local state member.
+
+Loop Behavior:
+    Iterates through results.
+    Iterates through reader.
+"""
         # prevent reporting findings multiple times to the same iid
         results = self.get_unique_findings()
         row_findings = 0
@@ -156,5 +291,11 @@ class BaseDyLinAnalysis(BaseAnalysis):
                 writer.writerows(csv_rows)
 
     def end_execution(self) -> None:
+        """
+End execution: implementation of the end_execution logic.
+
+Returns:
+    Standard result object.
+"""
         self._write_detailed_results()
         self._write_overview()

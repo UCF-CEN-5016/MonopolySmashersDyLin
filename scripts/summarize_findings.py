@@ -1,10 +1,27 @@
+"""
+Module for summarize_findings functionality.
+"""
 import json
 from fire import Fire
 from pathlib import Path
 
 
 def _timing_txt_for_findings(findings_csv: Path) -> Path:
-    """timing.txt lives under reports_<i>/ next to dynapyt_output/, not inside dynapyt_output/."""
+    """
+Timing txt for findings: implementation of the _timing_txt_for_findings logic.
+
+Args:
+    findings_csv: Operational parameter.
+
+Key Variables:
+    candidate: Local state member.
+
+Loop Behavior:
+    Iterates through (findings_csv.parent.parent, findings_csv.parent.parent.parent).
+
+Returns:
+    Standard result object.
+"""
     for anc in (findings_csv.parent.parent, findings_csv.parent.parent.parent):
         candidate = anc / "timing.txt"
         if candidate.is_file():
@@ -16,7 +33,18 @@ def _timing_txt_for_findings(findings_csv: Path) -> Path:
 
 
 def _repo_relative_path(file_path: str) -> str:
-    """Match legacy formatting: strip /Work/ and trailing .orig from container paths."""
+    """
+Repo relative path: implementation of the _repo_relative_path logic.
+
+Args:
+    file_path: Operational parameter.
+
+Key Variables:
+    s: Local state member.
+
+Returns:
+    Standard result object.
+"""
     s = file_path
     if s.startswith("/Work/"):
         s = s[len("/Work/") :]
@@ -26,6 +54,18 @@ def _repo_relative_path(file_path: str) -> str:
 
 
 def _load_output_sessions(output_json: Path) -> list:
+    """
+Load output sessions: implementation of the _load_output_sessions logic.
+
+Args:
+    output_json: Operational parameter.
+
+Key Variables:
+    data: Local state member.
+
+Returns:
+    Standard result object.
+"""
     if not output_json.is_file():
         return []
     with open(output_json, "r", encoding="utf-8") as f:
@@ -38,6 +78,29 @@ def _load_output_sessions(output_json: Path) -> list:
 
 
 def _append_findings_for_analysis(findings: list, analysis_name: str, sessions: list) -> None:
+    """
+Append findings for analysis: implementation of the _append_findings_for_analysis logic.
+
+Args:
+    findings: Operational parameter.
+    analysis_name: Operational parameter.
+    sessions: Operational parameter.
+
+Key Variables:
+    block: Local state member.
+    fnd: Local state member.
+    loc: Local state member.
+    rel: Local state member.
+    results: Local state member.
+
+Loop Behavior:
+    Iterates through sessions.
+    Iterates through (block.get("results") or {}).items().
+    Iterates through ress.
+
+Returns:
+    Standard result object.
+"""
     for session in sessions:
         results = session.get("results") or {}
         block = results.get(analysis_name)
@@ -56,6 +119,26 @@ def _append_findings_for_analysis(findings: list, analysis_name: str, sessions: 
 
 
 def summarize_findings(results: str):
+    """
+Summarize findings: implementation of the summarize_findings logic.
+
+Args:
+    results: Operational parameter.
+
+Key Variables:
+    _: Local state member.
+    analysis_name: Local state member.
+    findings: Local state member.
+    line: Local state member.
+    lines: Local state member.
+    parts: Local state member.
+    results: Local state member.
+    sessions: Local state member.
+
+Loop Behavior:
+    Iterates through results.glob("**/findings.csv").
+    Iterates through lines.
+"""
     results = Path(results)
     findings = []
     for findings_csv in results.glob("**/findings.csv"):

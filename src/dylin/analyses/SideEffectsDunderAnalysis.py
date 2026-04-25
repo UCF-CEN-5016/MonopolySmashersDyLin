@@ -1,3 +1,6 @@
+"""
+Module for SideEffectsDunderAnalysis functionality.
+"""
 from os import path
 from .base_analysis import BaseDyLinAnalysis
 from typing import Any, Callable, List
@@ -5,7 +8,20 @@ import inspect
 
 
 class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
+    """
+Sideeffectsdunderanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    cached_file_contents: Local state member.
+    dunder_method_stack: Local state member.
+    dunder_methods_to_check: Local state member.
+    stack_levels: Local state member.
+"""
         super(SideEffectsDunderAnalysis, self).__init__(**kwargs)
         self.analysis_name = "SideEffectsDunderAnalysis"
         self.stack_levels = 20
@@ -91,6 +107,19 @@ class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
         }
 
     def function_enter(self, dyn_ast: str, iid: int, args: List[Any], name: str, is_lambda: bool) -> None:
+        """
+Function enter: implementation of the function_enter logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    args: Operational parameter.
+    name: Entity name.
+    is_lambda: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         if name in self.dunder_methods_to_check:
             self.dunder_method_stack.append(name)
 
@@ -98,6 +127,21 @@ class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
     # Consider calling dunder method twice, compare state of object after first call and after second call,
     # nothing should not have changed
     def write(self, dyn_ast: str, iid: int, old_vals: List[Callable], new_val: Any) -> None:
+        """
+Write: implementation of the write logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    old_vals: Operational parameter.
+    new_val: Operational parameter.
+
+Key Variables:
+    closure_vars: Local state member.
+
+Returns:
+    Standard result object.
+"""
         if len(self.dunder_method_stack) > 0:
             try:
                 closure_vars = inspect.getclosurevars(old_vals[0])
@@ -120,6 +164,21 @@ class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
     """
 
     def _check_stack_sanity(self, dunder_method_stack):
+        """
+Check stack sanity: implementation of the _check_stack_sanity logic.
+
+Args:
+    dunder_method_stack: Operational parameter.
+
+Key Variables:
+    dunder_method_stack: Local state member.
+    function_name: Local state member.
+    method_name_stack: Local state member.
+    res: Local state member.
+
+Returns:
+    Standard result object.
+"""
         if len(dunder_method_stack) > 0:
             function_name = dunder_method_stack[-1]
             method_name_stack = list(map(lambda frame_info: frame_info.function, inspect.stack()))
@@ -130,6 +189,14 @@ class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
         return False
 
     def _check_if_left_method(self, dyn_ast: str, iid: int, function_name: str):
+        """
+Check if left method: implementation of the _check_if_left_method logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    function_name: Operational parameter.
+"""
         if not str(function_name) in self.dunder_methods_to_check:
             return
 
@@ -137,5 +204,17 @@ class SideEffectsDunderAnalysis(BaseDyLinAnalysis):
             self.dunder_method_stack.pop()
 
     def function_exit(self, dyn_ast: str, iid: int, name: str, result: Any) -> Any:
+        """
+Function exit: implementation of the function_exit logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    name: Entity name.
+    result: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         self._check_if_left_method(dyn_ast, iid, name)
         return None

@@ -1,10 +1,22 @@
+"""
+Module for StringStripAnalysis functionality.
+"""
 from typing import Any, Callable, Dict, Tuple
 from .base_analysis import BaseDyLinAnalysis
 from dynapyt.instrument.filters import only
 
 
 class StringStripAnalysis(BaseDyLinAnalysis):
+    """
+Stringstripanalysis: logical component class.
+"""
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+"""
         super(StringStripAnalysis, self).__init__(**kwargs)
         self.analysis_name = "StringStripAnalysis"
 
@@ -18,6 +30,24 @@ class StringStripAnalysis(BaseDyLinAnalysis):
         pos_args: Tuple,
         kw_args: Dict,
     ) -> Any:
+        """
+Post call: implementation of the post_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    val: Operational parameter.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    _self: Local state member.
+    arg: Local state member.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} post_call {iid}")
         if val is function:
             return

@@ -1,3 +1,6 @@
+"""
+Module for coverage_report functionality.
+"""
 import json
 from pathlib import Path
 from typing import Optional
@@ -7,11 +10,22 @@ from fire import Fire
 
 def _dylin_coverage_json_for_reports(reports_dir: Path) -> Optional[Path]:
     """
-    Return the merged coverage file for a GitHub project run.
+Dylin coverage json for reports: implementation of the _dylin_coverage_json_for_reports logic.
 
-    DynaPyt may write many ``coverage-<uuid>.json`` shards plus a merged ``coverage.json`` under
-    ``dynapyt_coverage/dynapyt_coverage-<session>/``. We must pick ``coverage.json``, not the shards.
-    """
+Args:
+    reports_dir: Operational parameter.
+
+Key Variables:
+    main: Local state member.
+    session_dirs: Local state member.
+
+Loop Behavior:
+    Iterates through sorted(p for p in reports_dir.glob("dynapyt_coverage-*") if p.is_dir()).
+    Iterates through session_dirs.
+
+Returns:
+    Standard result object.
+"""
     session_dirs = sorted(p for p in reports_dir.glob("dynapyt_coverage/dynapyt_coverage-*") if p.is_dir())
     if not session_dirs:
         for legacy in sorted(p for p in reports_dir.glob("dynapyt_coverage-*") if p.is_dir()):
@@ -27,7 +41,20 @@ def _dylin_coverage_json_for_reports(reports_dir: Path) -> Optional[Path]:
 
 
 def _test_cov_json(test_dir: Path, i: int) -> Optional[Path]:
-    """pytest-cov may write cov.json at testcov_<i>/cov.json or nested testcov_<i>/testcov/cov.json after a bad mv."""
+    """
+Test cov json: implementation of the _test_cov_json logic.
+
+Args:
+    test_dir: Operational parameter.
+    i: Operational parameter.
+
+Key Variables:
+    p1: Local state member.
+    p2: Local state member.
+
+Returns:
+    Standard result object.
+"""
     p1 = test_dir / f"testcov_{i}" / "cov.json"
     p2 = test_dir / f"testcov_{i}" / "testcov" / "cov.json"
     if p1.is_file():
@@ -38,13 +65,29 @@ def _test_cov_json(test_dir: Path, i: int) -> Optional[Path]:
 
 
 def _timing_txt_for_coverage_json(coverage_json: Path) -> Path:
-    """timing.txt sits under reports_<i>/ next to dynapyt_output/ and dynapyt_coverage/."""
+    """
+Timing txt for coverage json: implementation of the _timing_txt_for_coverage_json logic.
+
+Args:
+    coverage_json: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
     # .../reports_<i>/dynapyt_coverage/dynapyt_coverage-.../coverage.json -> parents up to reports_<i>
     return coverage_json.parent.parent.parent / "timing.txt"
 
 
 def _github_project_count() -> int:
-    """Number of lines in scripts/projects.txt (GitHub benchmark size)."""
+    """
+Github project count: implementation of the _github_project_count logic.
+
+Key Variables:
+    p: Local state member.
+
+Returns:
+    Standard result object.
+"""
     p = Path(__file__).resolve().parent / "projects.txt"
     if not p.is_file():
         return 37
@@ -52,6 +95,20 @@ def _github_project_count() -> int:
         return len([ln for ln in f if ln.strip() and not ln.strip().startswith("#")])
 
 def sanity_check(analysis_coverage, test_coverage):
+    """
+Sanity check: implementation of the sanity_check logic.
+
+Args:
+    analysis_coverage: Operational parameter.
+    test_coverage: Operational parameter.
+
+Key Variables:
+    X: Local state member.
+
+Loop Behavior:
+    Iterates through analysis_coverage.items().
+    Iterates through lines.items().
+"""
     X = 0 #len("/opt/dylinVenv/lib/python3.10/site-packages/")
     for file, lines in analysis_coverage.items():
         if file[X:-5] not in test_coverage["files"]:
@@ -64,6 +121,29 @@ def sanity_check(analysis_coverage, test_coverage):
                 
 
 def coverage_report(analysis_coverage: str, test_coverage: str):
+    """
+Coverage report: implementation of the coverage_report logic.
+
+Args:
+    analysis_coverage: Operational parameter.
+    test_coverage: Operational parameter.
+
+Key Variables:
+    content: Local state member.
+    coverage: Local state member.
+    covered_by: Local state member.
+    fl: Local state member.
+    test_coverage: Local state member.
+    total_covered_lines: Local state member.
+
+Loop Behavior:
+    Iterates through coverage.items().
+    Iterates through lines.items().
+    Iterates through analyses.items().
+
+Returns:
+    Standard result object.
+"""
     with open(analysis_coverage) as f:
         coverage = json.load(f)
     with open(test_coverage) as f:
@@ -96,6 +176,22 @@ def coverage_report(analysis_coverage: str, test_coverage: str):
     return covered_by, total_covered_lines, test_coverage
 
 def compare_only_one(analysis_dir: str, test_dir: str):
+    """
+Compare only one: implementation of the compare_only_one logic.
+
+Args:
+    analysis_dir: Operational parameter.
+    test_dir: Operational parameter.
+
+Key Variables:
+    covered_by: Local state member.
+    test_cov: Local state member.
+    test_coverage: Local state member.
+    total_covered_lines: Local state member.
+
+Loop Behavior:
+    Iterates through Path(analysis_dir).glob("**/dynapyt_coverage-*/coverage*.json").
+"""
     test_cov = Path(test_dir) / "cov.json"
     for ac in Path(analysis_dir).glob("**/dynapyt_coverage-*/coverage*.json"):
         print(f"{ac} {test_cov}")
@@ -105,11 +201,28 @@ def compare_only_one(analysis_dir: str, test_dir: str):
 
 def coverage_comparison(analysis_dir: str, test_dir: str, max_project: Optional[int] = None):
     """
-    Compare DyLin analysis coverage to pytest test coverage per GitHub project index.
+Coverage comparison: implementation of the coverage_comparison logic.
 
-    By default loops 1..N where N is the number of projects in ``scripts/projects.txt`` (37).
-    Pass ``max_project`` to override (e.g. smoke test on first 3 projects).
-    """
+Args:
+    analysis_dir: Operational parameter.
+    test_dir: Operational parameter.
+    max_project: Operational parameter.
+
+Key Variables:
+    analysis_coverage: Local state member.
+    analysis_dir: Local state member.
+    covered_by: Local state member.
+    n: Local state member.
+    project_name: Local state member.
+    reports_dir: Local state member.
+    test_coverage: Local state member.
+    test_dir: Local state member.
+    timing: Local state member.
+    timing_path: Local state member.
+
+Loop Behavior:
+    Iterates through range(1, n + 1).
+"""
     analysis_dir = Path(analysis_dir).resolve()
     test_dir = Path(test_dir).resolve()
     n = max_project if max_project is not None else _github_project_count()

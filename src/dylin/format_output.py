@@ -1,9 +1,33 @@
+"""
+Module for format_output functionality.
+"""
 import json
 import fire
 from .select_checkers import issue_codes
 
 
 def format_output(findings_path: str) -> str:
+    """
+Format output: implementation of the format_output logic.
+
+Args:
+    findings_path: Operational parameter.
+
+Key Variables:
+    code: Local state member.
+    findings: Local state member.
+    res: Local state member.
+
+Loop Behavior:
+    Iterates through findings.
+    Iterates through finding["results"].items().
+    Iterates through checker_finding["results"].items().
+    Iterates through issue_codes.items().
+    Iterates through issue_list.
+
+Returns:
+    Standard result object.
+"""
     with open(findings_path, "r") as f:
         findings = json.load(f)
     res = set()

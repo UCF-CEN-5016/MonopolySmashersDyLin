@@ -1,3 +1,6 @@
+"""
+Module for ObjectMarkingAnalysis functionality.
+"""
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .base_analysis import BaseDyLinAnalysis
@@ -8,53 +11,20 @@ import yaml
 
 class ObjectMarkingAnalysis(BaseDyLinAnalysis):
     """
-    We only care about values on the heap here.
-    Furthermore, we define that values can only be tainted if some function has been
-    called on them.
-
-    But this is not entirely true, consider the following:
-        @HTTP.POST("/usr")
-        def createUser(username: string)
-            ...
-    Username should obviously be tainted. TODO we can easily work around this in the future
-    with function_entry / exit, which allows to taint input values during runtime, based
-    on the method name.
-
-    Ideas for identifying objects: ids are not stable across execution, also they (probably) only work
-    like this in cpython, other implementations might not refer to memory addresses for id()
-    calls
-    ideas:
-        - get current stack frame and associate StoredElements with id and frame
-            - if frame is gone, gc StoredElements
-            -> inspect.get_frame is really slow and still cpython specific
-        - keep weakreference via weakref module of value
-            - if its been garbage collected / freed, weakref just returns None
-            - implement "gc" to clean up weakrefs which return None
-            - again, does not work for some python interpreters, but might be faster
-        - wrap every object during instrumentation with a special wrapper which is able to relay every function call
-            - (see https://stackoverflow.com/questions/33125419/instance-of-python-class-that-responds-to-all-method-calls)
-            - comes with its own set of problems, i.e. external objects from libraries, builtins etc etc.
-            - probaly creates all kinds of issues during execution
-
-        current solution:
-            - use id() but remove objects dynamically via callback of weakrefs as soon as
-              object is removed by gc
-                - if developers define __slots__ themselves w/o __weakref__ we can't index object
-            - wrap dicts, lists etc in a wrapper class during runtime which contains
-              __weakref__ in slots, also for developer defined classes which overwrite __slots__ w/o
-              weakref (this is can be done via _write_)
-                - evaluate how often this breaks code bases i.e. type(strWrap) != str
-            - does not work for int, tuple. Hash objects in that case
-
-    Furthermore, the current implementation does not consider something like this:
-        if value < 2:
-            other_value.do_sth_dangerous()
-    where value impacts dataflow of other_value
-
-    TODO: add binary etc operations to be treated as normal operation
-    """
+Objectmarkinganalysis: logical component class.
+"""
 
     def __init__(self, **kwargs):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    analysis_name: Local state member.
+    log: Local state member.
+    sinks: Local state member.
+    sources: Local state member.
+    stored_elements: Local state member.
+"""
         self.analysis_name = "ObjectMarkingAnalysis"
         self.stored_elements = {}
         self.sources = {}
@@ -68,6 +38,14 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         super().__init__(**kwargs)
 
     def setup(self):
+        """
+Setup: implementation of the setup logic.
+
+Key Variables:
+    configPath: Local state member.
+    config_name: Local state member.
+    pwd: Local state member.
+"""
         config_name: str = self.meta.get("configName")
         if not config_name.endswith(".yml"):
             config_name += ".yml"
@@ -83,6 +61,37 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         self.load_config(str(configPath))
 
     def load_config(self, yaml_path: str) -> models.TaintConfig:
+        """
+Load config: implementation of the load_config logic.
+
+Args:
+    yaml_path: Operational parameter.
+
+Key Variables:
+    analysis_name: Local state member.
+    args: Local state member.
+    error_msg: Local state member.
+    f_string: Local state member.
+    m: Local state member.
+    markings: Local state member.
+    name: Local state member.
+    resulting_function: Local state member.
+    sink: Local state member.
+    sinks: Local state member.
+
+Loop Behavior:
+    Iterates through yml["markings"].items().
+    Iterates through yml["sources"].
+    Iterates through source["associated_markings"].
+    Iterates through source["qualnames"].
+    Iterates through yml["sinks"].
+    Iterates through sink["associated_markings"].
+    Iterates through sink.get("args") if sink.get("args") else list().
+    Iterates through sink["qualnames"].
+
+Returns:
+    Standard result object.
+"""
         with open(yaml_path, "r") as yaml_str:
             yml = yaml.safe_load(yaml_str)
 
@@ -161,6 +170,25 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
     # the order of arguments of the original method signature
     # if method contains __self__ its the first argument, if not we ignore it
     def _get_in_markings(self, pos_args: Tuple, kw_args: Dict, _self: Optional[Any]) -> List[Set[models.Marking]]:
+        """
+Get in markings: implementation of the _get_in_markings logic.
+
+Args:
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+    _self: Operational parameter.
+
+Key Variables:
+    element: Local state member.
+    in_markings: Local state member.
+
+Loop Behavior:
+    Iterates through pos_args.
+    Iterates through kw_args.
+
+Returns:
+    Standard result object.
+"""
         in_markings = []
         if not _self is None:
             element = self.stored_elements.get(save_uid(_self))
@@ -191,6 +219,36 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         pos_args: Tuple,
         kw_args: Dict,
     ) -> Any:
+        """
+Post call: implementation of the post_call logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    result: Operational parameter.
+    function: Operational parameter.
+    pos_args: Positional logic arguments.
+    kw_args: Keyword logic arguments.
+
+Key Variables:
+    _self: Local state member.
+    _selfstr: Local state member.
+    error: Local state member.
+    func_name: Local state member.
+    function_is_of_interest: Local state member.
+    i: Local state member.
+    is_result_stored: Local state member.
+    is_source: Local state member.
+    out_markings: Local state member.
+    out_markings_result: Local state member.
+
+Loop Behavior:
+    Iterates through result.
+    Iterates through result.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} post_call {iid} {function.__name__}")
         if result is function:
             return
@@ -267,10 +325,28 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         return None
 
     def function_exit(self, dyn_ast: str, iid: int, name: str, result: Any) -> Any:
+        """
+Function exit: implementation of the function_exit logic.
+
+Args:
+    dyn_ast: Dynamic AST tree.
+    iid: Instruction identifier.
+    name: Entity name.
+    result: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
         # print(f"{self.analysis_name} function_exit {name} {iid} {dyn_ast}")
         # TODO ignore return value of function which calls cleanup
         cleanup()
 
     def end_execution(self) -> None:
+        """
+End execution: implementation of the end_execution logic.
+
+Returns:
+    Standard result object.
+"""
         self.add_meta(f"stored elements {len(self.stored_elements)}, {list(self.stored_elements.values())[:100]}")
         super().end_execution()

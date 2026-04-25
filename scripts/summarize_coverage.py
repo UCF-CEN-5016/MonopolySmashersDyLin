@@ -1,8 +1,30 @@
+"""
+Module for summarize_coverage functionality.
+"""
 import json
 from pathlib import Path
 from fire import Fire
 
 def summarize_coverage(root_dir: str):
+    """
+Summarize coverage: implementation of the summarize_coverage logic.
+
+Args:
+    root_dir: Operational parameter.
+
+Key Variables:
+    checkers: Local state member.
+    coverage_comparisons: Local state member.
+    data: Local state member.
+    here: Local state member.
+    project: Local state member.
+    projects: Local state member.
+    result: Local state member.
+    root_dir: Local state member.
+
+Loop Behavior:
+    Iterates through coverage_comparisons.
+"""
     checkers = ["InconsistentPreprocessing", "InPlaceSortAnalysis", "MutableDefaultArgsAnalysis", "WrongTypeAddedAnalysis", "GradientAnalysis", "BuiltinAllAnalysis", "StringStripAnalysis", "NonFinitesAnalysis", "TensorflowNonFinitesAnalysis", "ObjectMarkingAnalysis", "StringConcatAnalysis", "InvalidComparisonAnalysis", "ComparisonBehaviorAnalysis", "ChangeListWhileIterating"]
     here = Path(__file__).resolve().parent
     with open(here / "projects.txt") as f:

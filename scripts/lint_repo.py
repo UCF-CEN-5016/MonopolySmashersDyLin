@@ -1,3 +1,6 @@
+"""
+Module for lint_repo functionality.
+"""
 import argparse
 import json
 from pathlib import Path

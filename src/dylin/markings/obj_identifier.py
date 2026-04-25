@@ -1,10 +1,26 @@
+"""
+Module for obj_identifier functionality.
+"""
 from typing import Optional
 import weakref
 from collections import defaultdict
 from uuid import UUID, uuid4
 
 class HeapMirror():
+    """
+Heapmirror: logical component class.
+"""
     def __init__(self):
+        """
+Init: implementation of the __init__ logic.
+
+Key Variables:
+    activate_weak: Local state member.
+    clean_callbacks: Local state member.
+    hashable_fallback: Local state member.
+    id_fallback: Local state member.
+    mirrored_objects: Local state member.
+"""
         self.activate_weak = True
         self.mirrored_objects = {}
         self.hashable_fallback = defaultdict(uuid4)
@@ -12,14 +28,42 @@ class HeapMirror():
         self.clean_callbacks = []
 
     def add_clean_callback(self, func):
+        """
+Add clean callback: implementation of the add_clean_callback logic.
+
+Args:
+    func: Operational parameter.
+"""
         self.clean_callbacks.append(func)
 
     def _clean(self, internal_key):
+        """
+Clean: implementation of the _clean logic.
+
+Args:
+    internal_key: Operational parameter.
+
+Loop Behavior:
+    Iterates through self.clean_callbacks.
+"""
         for callback in self.clean_callbacks:
             callback(self.mirrored_objects[internal_key]["uuid"].int)
         del self.mirrored_objects[internal_key]
 
     def contains(self, obj: any):
+        """
+Contains: implementation of the contains logic.
+
+Args:
+    obj: Operational parameter.
+
+Key Variables:
+    h: Local state member.
+    res: Local state member.
+
+Returns:
+    Standard result object.
+"""
         if id(obj) in self.mirrored_objects:
             return self.mirrored_objects[id(obj)]["uuid"]
         try:
@@ -35,9 +79,20 @@ class HeapMirror():
 
     def get_ref(self, uuid) -> Optional[weakref.ReferenceType]:
         """
-        Use with caution, pretty slow with current implementation.
-        Only supports mirrored objects for now, no fallbacks i.e. self.id_fallback and self.hashable_fallback
-        """
+Get ref: implementation of the get_ref logic.
+
+Args:
+    uuid: Operational parameter.
+
+Key Variables:
+    mirrored: Local state member.
+
+Loop Behavior:
+    Iterates through self.mirrored_objects.
+
+Returns:
+    Standard result object.
+"""
 
         for _id in self.mirrored_objects:
             mirrored = self.mirrored_objects[_id]
@@ -46,6 +101,22 @@ class HeapMirror():
         return None
 
     def getId(self, obj: any) -> Optional[str]:
+        """
+Getid: implementation of the getId logic.
+
+Args:
+    obj: Operational parameter.
+
+Key Variables:
+    actual_key: Local state member.
+    h: Local state member.
+    reference: Local state member.
+    res: Local state member.
+    val: Local state member.
+
+Returns:
+    Standard result object.
+"""
         if self.activate_weak:
             try:
                 # weakref is always preferred, because freed objects
@@ -96,6 +167,13 @@ class HeapMirror():
         return res
 
     def cleanup_fallbacks(self):
+        """
+Cleanup fallbacks: implementation of the cleanup_fallbacks logic.
+
+Key Variables:
+    hashable_fallback: Local state member.
+    id_fallback: Local state member.
+"""
         if self.activate_weak:
             self.id_fallback = defaultdict(uuid4)
             self.hashable_fallback = defaultdict(uuid4)
@@ -105,11 +183,21 @@ uniqueidmap = HeapMirror()
 
 
 def wrap(any):
-    '''
-    Dynamically adds weakref capability to lists, dicts.
-    Throws TypeErrors for tuple, int which can not support
-    weakrefs ever.
-    '''
+    """
+Wrap: implementation of the wrap logic.
+
+Args:
+    any: Operational parameter.
+
+Key Variables:
+    __name__: Local state member.
+    __slots__: Local state member.
+    base: Local state member.
+    slots: Local state member.
+
+Returns:
+    Standard result object.
+"""
     try:
         base = any.__class__
         slots = ()
@@ -120,6 +208,9 @@ def wrap(any):
         slots += ("__weakref__",)
 
         class ExtraSlots(base):
+            """
+Extraslots: logical component class.
+"""
             __slots__ = slots
         ExtraSlots.__name__ = base.__name__
 
@@ -130,14 +221,31 @@ def wrap(any):
 
 
 def has_obj(obj) -> Optional[str]:
+    """
+Has obj: implementation of the has_obj logic.
+
+Args:
+    obj: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
     return uniqueidmap.contains(obj)
 
 
 def save_uid(obj) -> Optional[str]:
     """
-    Return uuid for object, if obj is not mirrored
-    return a new uuid which does not reference a mirrored object
-    """
+Save uid: implementation of the save_uid logic.
+
+Args:
+    obj: Operational parameter.
+
+Key Variables:
+    x: Local state member.
+
+Returns:
+    Standard result object.
+"""
     x = uniqueidmap.contains(obj)
     if x is None:
         return uuid4().int
@@ -146,9 +254,17 @@ def save_uid(obj) -> Optional[str]:
 
 def uniqueid(obj) -> Optional[str]:
     """
-    Produce a uuid for any object which should be unique across
-    execution
-    """
+Uniqueid: implementation of the uniqueid logic.
+
+Args:
+    obj: Operational parameter.
+
+Key Variables:
+    res: Local state member.
+
+Returns:
+    Standard result object.
+"""
     if obj is None:
         return None
     res = uniqueidmap.getId(obj)
@@ -158,6 +274,15 @@ def uniqueid(obj) -> Optional[str]:
 
 
 def get_ref(uuid) -> Optional[weakref.ReferenceType]:
+    """
+Get ref: implementation of the get_ref logic.
+
+Args:
+    uuid: Operational parameter.
+
+Returns:
+    Standard result object.
+"""
     if uuid is None:
         return None
     return uniqueidmap.get_ref(uuid)
@@ -165,11 +290,16 @@ def get_ref(uuid) -> Optional[weakref.ReferenceType]:
 
 def add_cleanup_hook(func):
     """
-    Adds hook which is called right before gc collects object.
-    Function will be called with mirrored objects uuid.
-    """
+Add cleanup hook: implementation of the add_cleanup_hook logic.
+
+Args:
+    func: Operational parameter.
+"""
     uniqueidmap.add_clean_callback(func)
 
 
 def cleanup():
+    """
+Cleanup: implementation of the cleanup logic.
+"""
     uniqueidmap.cleanup_fallbacks()
