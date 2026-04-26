@@ -5,6 +5,7 @@ import numpy as np
 
 
 class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
+    # Detect suspicious custom comparison behavior (symmetry, stability, identity, reflexivity)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.analysis_name = "ComparisonBehaviorAnalysis"
@@ -25,6 +26,7 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
     """
 
     def is_excluded(self, val: any) -> bool:
+        # Exclude primitive/common container types where Python comparison semantics are expected
         return (
             type(val) is int
             or type(val) is float
@@ -41,20 +43,25 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
 
     def equal(self, dyn_ast: str, iid: int, left: Any, right: Any, result: Any) -> bool:
         # print(f"{self.analysis_name} equal {iid}")
+        # Reuse shared checker for == comparisons
         self.check_all(dyn_ast, iid, left, "Equal", right, result)
 
     def not_equal(self, dyn_ast: str, iid: int, left: Any, right: Any, result: Any) -> bool:
         # print(f"{self.analysis_name} not equal {iid}")
+        # Reuse shared checker for != comparisons
         self.check_all(dyn_ast, iid, left, "NotEqual", right, result)
 
     def check_all(self, dyn_ast: str, iid: int, left: Any, op: str, right: Any, result: Any) -> bool:
+        # Only reason about equality/inequality operators for this analysis
         if op != "Equal" and op != "NotEqual":
             return None
 
+        # Skip known safe/builtin semantics to reduce false positives
         if self.is_excluded(left) or self.is_excluded(right):
             return None
 
         try:
+            # Symmetry: a == b should match b == a (same for !=)
             if self.check_symmetry(left, right, op, result):
                 self.add_finding(
                     iid,
@@ -62,6 +69,7 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
                     "A-01",
                     f"bad symmetry for {op} with {left} {right}",
                 )
+            # Stability: repeated comparison should not oscillate for same operands
             if self.check_stability(left, right, op, result):
                 self.add_finding(iid, dyn_ast, "A-02", f"bad stability for {op}")
             elif self.check_identity(left):
@@ -97,9 +105,11 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
             return
 
     def check_reflexivity(self, left) -> bool:
+        # Reflexivity property: x should equal itself
         return left != left
 
     def check_identity(self, left: Any) -> bool:
+        # Identity misuse: object reports equality to None while not actually None
         return left is not None and left == None
 
     def check_symmetry(self, left: Any, right: Any, op: Any, res: bool) -> bool:
@@ -110,6 +120,7 @@ class ComparisonBehaviorAnalysis(BaseDyLinAnalysis):
             return not ((left != right) == (right != left) == res)
 
     def check_stability(self, left: Any, right: Any, op: Any, normal: bool) -> bool:
+        # Re-evaluate comparison multiple times to detect side effects / non-determinism
         for _ in range(3):
             if op == "Equal":
                 if (left == right) != normal:

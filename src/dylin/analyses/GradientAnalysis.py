@@ -11,6 +11,7 @@ import torch
 
 
 class GradientAnalysis(BaseDyLinAnalysis):
+    # Detect exploding/vanishing gradient magnitudes in TensorFlow and PyTorch training flows
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.analysis_name = "GradientAnalysis"
@@ -23,6 +24,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
             """
             removes model uuid as soon as gc collects it
             """
+            # Keep tracked-model map aligned with object lifetime
             if not self.stored_torch_models.get(uuid) is None:
                 del self.stored_torch_models[uuid]
 
@@ -31,6 +33,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict):
         # tensorflow
         # print(f"{self.analysis_name} pre_call {iid}")
+        # Capture optimizer.apply_gradients before update step mutates tensors
         if "__func__" in dir(function) and function.__func__ == tf.optimizers.Optimizer.apply_gradients:
             if isinstance(pos_args[0], collections.abc.Iterator):
                 # pos_args[0] can be a zip object, which is an Iterator. These objects
@@ -48,6 +51,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
                 grad: tf.Tensor = gradients[i][0]
                 _min = tf.math.reduce_min(grad)
                 _max = tf.math.reduce_max(grad)
+                # Flag values outside configured clipping-like threshold
                 if _min <= -self.threshold or _max >= self.threshold:
                     self.add_finding(
                         iid,
@@ -66,6 +70,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
         kw_args: Dict,
     ) -> Any:
         # print(f"{self.analysis_name} post_call {iid}")
+        # Ignore degenerate callback where return value is function object
         if val is function:
             return
         # pytorch
@@ -75,6 +80,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
         if isinstance(val, nn.Module):
             uuid = save_uid(val)
             if self.stored_torch_models.get(uuid) is None:
+                # Store model handle for later optimizer-step gradient inspection
                 self.stored_torch_models[uniqueid(val)] = True
         else:
             # because Optimizer.step sometimes use annotations which hide actual method
@@ -95,6 +101,7 @@ class GradientAnalysis(BaseDyLinAnalysis):
                             if not grad is None:
                                 _max = torch.max(grad)
                                 _min = torch.min(grad)
+                                # M-28: detect unstable gradient magnitude after optimizer interactions
                                 if _max >= self.threshold or _min <= -self.threshold:
                                     self.add_finding(
                                         iid,
@@ -105,5 +112,6 @@ class GradientAnalysis(BaseDyLinAnalysis):
                                     return
 
     def end_execution(self) -> None:
+        # Include aggregate count to contextualize how much training state was inspected
         self.add_meta({"total_gradients_investigated": self.total_gradients_investigated})
         super().end_execution()

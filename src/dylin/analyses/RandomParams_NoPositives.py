@@ -21,19 +21,19 @@ class RandomParams_NoPositives(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
-        # The target class names for monitoring
+        # Limit checks to stdlib random module APIs
         targets = ["random"]
 
-        # Get the class name
+        # Resolve module where the called function is defined
         if hasattr(function, '__module__'):
             class_name = function.__module__
         else:
             class_name = None
 
-        # Check if the class name is the target ones
+        # Process only targeted random APIs
         if class_name in targets:
 
-            # Check if the parameters are correct
+            # Validate parameter domain constraints from Python docs
             violation = False
             if function.__name__ == "lognormvariate":
                 sigma = None
@@ -42,6 +42,7 @@ class RandomParams_NoPositives(BaseDyLinAnalysis):
                 elif len(pos_args) > 1:
                     sigma = pos_args[1]
 
+                # sigma must be strictly positive
                 if sigma is not None and sigma <= 0:
                     violation = True
 
@@ -52,13 +53,13 @@ class RandomParams_NoPositives(BaseDyLinAnalysis):
                 elif len(pos_args) > 1:
                     kappa = pos_args[1]
 
+                # kappa must be non-negative
                 if kappa is not None and kappa < 0:
                     violation = True
 
-            # If there is a violation, add a finding
+            # Emit finding when invalid distribution parameters are detected
             if violation:
 
-                # Spec content
                 self.add_finding(
                     iid,
                     dyn_ast,
