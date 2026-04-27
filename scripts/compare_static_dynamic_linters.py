@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import fire
+from fire import Fire
 
 WARNING_RE = re.compile(r'^(?P<file>.+?):(?P<line>\d+)(?::(?P<column>\d+))?:\s*(?P<rest>.*)$')
 CODE_FILE_LINE_RE = re.compile(r'^(?P<code>[A-Z][A-Z0-9_-]*):\s*(?P<file>.+?):\s*(?P<line>\d+):\s*(?P<rest>.*)$')
