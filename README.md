@@ -18,6 +18,17 @@ To install requirements for a local (not in a container) run:
 pip install -r requirements.txt
 ```
 
+## Build-All / Run-All Pipeline
+If you want to set up and execute the full experiment pipeline in one go, use `build_and_run.sh`.
+This script is the end-to-end entrypoint that prepares the environment and runs the complete workflow.
+
+```bash
+bash build_and_run.sh
+```
+
+Use this when you want the full pipeline ready with a single command.
+The detailed step-by-step breakdown still exists in the sections below.
+
 ## Checkers
 The checkers are implemented in `src/analyses`.
 
