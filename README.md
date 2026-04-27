@@ -26,6 +26,21 @@ This script is the end-to-end entrypoint that prepares the environment and runs 
 bash build_and_run.sh
 ```
 
+If you already have the Docker images built, skip rebuilds with:
+```bash
+bash build_and_run.sh --no-build
+```
+This reuses existing images and avoids rebuilding them on every run.
+
+Additional stage flags:
+- `--test` runs the test stage (`pip install -r requirements-tests.txt` + `pytest tests`).
+- `--cov` runs dynamic analysis with coverage (`bash run_all_with_cov.sh`).
+- `--no_cov` runs dynamic analysis without coverage (`bash run_all_no_cov.sh`).
+- `--static_linters` runs static linter execution and static-vs-dynamic comparison.
+- `--coverage` runs the Stage 7 test-coverage reporting pipeline.
+
+By default, these stages are considered enabled when flags are omitted.
+
 Use this when you want the full pipeline ready with a single command.
 The detailed step-by-step breakdown still exists in the sections below.
 
