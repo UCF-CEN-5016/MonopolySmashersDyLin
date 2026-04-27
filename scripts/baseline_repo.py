@@ -12,6 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def install_special(url):
+    # Install per-project extras needed to make test suites runnable
     if url == "https://github.com/lorien/grab.git":
         command = "pip install cssselect pyquery pymongo fastrq"  # required for running tests
     elif url == "https://github.com/psf/black.git":
@@ -39,30 +40,37 @@ def install_special(url):
         subprocess.run(["pre-commit install"])
     else:
         return
+    # Execute selected dependency installation command
     subprocess.run(command.split(" "))
 
 
 def post_process_special(url):
+    # Apply project-specific cleanup to avoid known flaky/import-breaking tests
     if url == "https://github.com/pallets/click.git":
         (Path("click").resolve() / "tests" / "test_imports.py").unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
+    # Parse target repository index and optional DyLin config override
     parser = argparse.ArgumentParser(description="Analyze a git repo")
     parser.add_argument("--repo", help="the repo index", type=int)
     parser.add_argument("--config", help="DyLin config file path", type=str)
     args = parser.parse_args()
 
     here = Path(__file__).parent.resolve()
+    # Load repository metadata table from scripts/projects.txt
     with open(here / "projects.txt", "r") as f:
         project_infos = f.read().split("\n")
 
+    # Remove commented metadata rows
     project_infos = [p for p in project_infos if not p.startswith("#")]
 
     project_info = project_infos[args.repo - 1].split(" ")
     if "r" in project_info[2]:
+        # Format with explicit requirements file column
         url, commit, flags, requirements, tests = tuple(project_info)
     else:
+        # Format without dedicated requirements file
         url, commit, flags, tests = tuple(project_info)
         requirements = None
     name = url.split("/")[-1].split(".")[0].replace("-", "_")
@@ -71,6 +79,7 @@ if __name__ == "__main__":
     print("Installed special requirements")
 
     if url.startswith("http"):
+        # Remote project: clone pinned commit and install dependencies/package
         subprocess.run(["sh", here / "get_repo.sh", url, commit, name])
         print("Cloned repo and switched to commit")
         if requirements:
@@ -78,15 +87,18 @@ if __name__ == "__main__":
         subprocess.run(["pip", "install", f"{name}/"])
         print("Installed requirements")
     else:
+        # Local project path: install from local filesystem
         if requirements:
             subprocess.run(["pip", "install", "-r", f"{str(here/url/requirements)}"])
         subprocess.run(["pip", "install", f"{str(here/url)}/"])
 
     post_process_special(url)
     print("Post processed special requirements")
+    # Expected installed import path inside container venv
     installation_dir = f"{str(Path('/opt/dylinVenv/lib/python3.10/site-packages/', name))}"
 
     if not url.startswith("http"):
+        # Keep absolute local path for pytest invocation
         name = str(here / url)
 
     # if hasattr(args, "config") and args.config is not None:
@@ -136,11 +148,14 @@ if __name__ == "__main__":
     # inst_time_2 = time.time() - start
     # print("Instrumented repo")
     if tests.endswith(".py"):
+        # Single-file test entrypoint layout
         entry = f"{name}/dylin_run_all_tests.py"
     else:
+        # Directory-based tests layout
         entry = f"{name}/{tests}/dylin_run_all_tests.py"
 
     code_args = {'name': name, 'tests': tests, 'installation_dir': installation_dir}
+    # Generate small helper script that runs the project test suite via pytest
     run_all_tests = '''
 import pytest
 
@@ -152,13 +167,17 @@ pytest.main(['-n', 'auto', '--dist', 'worksteal', '--timeout=900', '--import-mod
     with open(entry, "w") as f:
         f.write(run_all_tests)
     if tests.endswith(".py"):
+        # Ensure Python can import test module when tests path is file-based
         sys.path.append(str(Path(name).resolve()))
     else:
+        # Ensure package imports resolve when tests path is directory-based
         sys.path.append(str((Path(name).resolve()) / tests))
     print("Wrote test runner, starting analysis")
     subprocess.run(["sloccount", str(Path(name).resolve())])
+    # Baseline mode intentionally runs without analyses to measure raw test runtime
     entry = ["pytest", '-n', 'auto', '--dist', 'worksteal', '--import-mode=importlib', f'{name}/{tests}']
     session_id = "1234-abcd"
+    # Empty analysis file signals no DyLin analyses for baseline timing runs
     with open(f"/tmp/dynapyt_analyses-{session_id}.txt", "w") as f:
         f.write("")
     os.environ["DYNAPYT_SESSION_ID"] = session_id
@@ -169,4 +188,5 @@ pytest.main(['-n', 'auto', '--dist', 'worksteal', '--timeout=900', '--import-mod
     # print("Finished analysis, copying coverage")
     # shutil.copy("/tmp/dynapyt_coverage/covered.jsonl", "/Work/reports/")
     with open("/Work/reports/baseline_timing.txt", "w") as f:
+        # Persist per-project baseline runtime for later DyLin overhead comparison
         f.write(f"{name} {analysis_time}\n")

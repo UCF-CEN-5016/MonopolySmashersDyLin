@@ -2,18 +2,23 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 
 class Marking():
+    # Represents a taint marking label that can be applied to objects during execution
     def __init__(self, name: str):
+        # Store marking name (e.g., "leaked", "preprocessed", "user_input")
         self.name = name
 
     def __eq__(self, other):
+        # Two markings are equal if they have the same name
         if isinstance(other, type(self)):
             return other.name == self.name
         return NotImplemented
 
     def __hash__(self) -> int:
+        # Hash based on name so markings can be used in sets/dicts
         return hash(self.name)
 
     def __str__(self) -> str:
+        # String representation is just the marking name
         return self.name
 
     def __repr__(self) -> str:
@@ -21,18 +26,24 @@ class Marking():
 
 
 class StoredElement():
+    # Represents an object and its associated taint markings
     def __init__(self, markings: List[Marking], location: Tuple[int, str]):
+        # Store markings as set for efficient membership testing and deduplication
         # consider using a dict, is faster
         self.markings = set(markings)
+        # Location tuple: (instruction_id, source_info)
         self.location = location
 
     def add_marking(self, marking: Marking):
+        # Add a new marking to this object (though this uses append, should use add for set)
         self.markings.append(marking)
 
     def remove_marking(self, marking: Marking):
+        # Filter out a specific marking from the object
         self.markings = filter(lambda m: m.marking != marking.name)
 
     def contains_marking(self, marking: Marking):
+        # Check if object has a specific marking
         return marking in self.markings
 
     def __repr__(self) -> str:
@@ -40,31 +51,37 @@ class StoredElement():
 
 
 def union(input: List[Set[Marking]], associated: Set[Marking] = None) -> Set[Marking]:
+    # Combine all markings from multiple sources (union operation for taint merging)
     if not associated:
         associated = set()
 
     res = associated
     for i in input:
+        # Merge each set of markings into the result
         res = res | i
     return res
 
 def clear(input: List[Set[Marking]], associated: Set[Marking] = None):
+    # Remove associated markings from input (set difference operation)
     if not associated:
         return set()
     res = set()
     for m in input:
         for m_l in m:
+            # Keep markings that are NOT in the associated set
             if not m_l in associated:
                 res.add(m_l)
     return res
 
 
 def disjunctive_union(input: List[Set[Marking]], associated: Set[Marking] = None) -> Set[Marking]:
+    # Alternative union that filters based on association (disjunctive union)
     if not associated:
         associated = set()
     res = set()
     for x in input:
         for y in x:
+            # Include markings not in associated set
             if not y in associated:
                 res.add(y)
     return res
@@ -73,6 +90,7 @@ def disjunctive_union(input: List[Set[Marking]], associated: Set[Marking] = None
 def contains(input: Dict[str, Set[Marking]],
                 associated: Set[Marking],
                 argnames: List[str] = list()) -> bool:
+    # Check if any associated marking appears in any input markings
     for m_l in associated:
         for m in input.values():
             if m_l in m:
@@ -83,6 +101,7 @@ def contains(input: Dict[str, Set[Marking]],
 def contains_all(input: Dict[str, Set[Marking]],
                 associated: Set[Marking],
                 argnames: List[str] = list()) -> bool:
+    # Check if ALL associated markings appear in input markings
     containsAll = True
     for m_l in associated:
         for m in input.values():
@@ -95,6 +114,7 @@ def contains_all(input: Dict[str, Set[Marking]],
 def first_contains_all(input: Dict[str, Set[Marking]],
                 associated: Set[Marking],
                 argnames: List[str] = list()) -> bool:
+    # Check if ONLY the first argument contains all associated markings
     new_in = dict(list(input.items())[:1])
     return contains_all(new_in, associated, argnames)
 

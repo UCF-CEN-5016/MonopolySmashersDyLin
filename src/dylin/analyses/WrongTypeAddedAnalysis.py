@@ -4,59 +4,56 @@ from dynapyt.instrument.filters import only
 from typing import Any, Callable, Tuple, Dict
 import random
 
-"""
-Name: 
-Wrong type added
+# Analysis to detect type inconsistencies when adding elements to homogeneous containers
+# If a list/set contains only one type but suddenly a different type is added,
+# this likely indicates a bug or logic error
 
-Source:
--
-
-Test description:
-Iff a list is sufficiently large and only contains objects of the same type,
-adding one of another type can mean an underlying issue
-
-Why useful in a dynamic analysis approach:
-Impossible for static anylsis
-
-Discussion:
-How large is sufficiently large? N=1000?
-"""
 
 function_names = ["append", "extend", "insert", "add"]
 
 
 class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
+    # Detects when elements of unexpected type are added to homogeneous containers
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Track statistics about type mismatches found
         self.nmb_add = 0
         self.nmb_add_assign = 0
         self.nmb_functions = 0
         self.analysis_name = "WrongTypeAddedAnalysis"
+        # Only analyze lists/sets with at least this many elements
         self.threshold = 10
 
     @only(patterns=function_names)
     def pre_call(self, dyn_ast: str, iid: int, function: Callable, pos_args, kw_args):
+        # Hook called before append/extend/insert/add methods on lists/sets
         # print(f"{self.analysis_name} pre_call {iid}")
         if isinstance(function, types.BuiltinFunctionType) and function.__name__ in function_names:
+            # Get the container (list/set) that method is being called on
             list_or_set = function.__self__
 
+            # Skip if list/set too small to have meaningful type homogeneity
             if not "__len__" in dir(list_or_set) or len(list_or_set) <= self.threshold:
                 return
             self.nmb_functions += 1
 
+            # Pick random sample of container to check type (reduces overhead for large containers)
             type_to_check = type(random.choice(list(list_or_set)))
 
-            # optimization to reduce overhead for large lists sample size has to be lower than threshold
+            # Sample container to test homogeneity (smaller sample for large lists)
             list_or_set = random.sample(list(list_or_set), self.threshold)
             same_type = all(isinstance(n, type_to_check) for n in list_or_set)
 
             if same_type:
+                # Container is homogeneous; check if new element matches
                 type_ok = True
                 if function.__name__ in ["append", "add"]:
+                    # For append/add, check single element being added
                     type_ok = isinstance(pos_args[0], type_to_check)
                     if not type_ok:
                         odd_type = type(pos_args[0])
                 elif function.__name__ == "extend":
+                    # For extend, check all elements being added
                     sample = pos_args[0]
                     if "__len__" in dir(sample) and len(sample) >= self.threshold:
                         sample = random.sample(list(pos_args[0]), self.threshold)
@@ -64,10 +61,12 @@ class WrongTypeAddedAnalysis(BaseDyLinAnalysis):
                     if not type_ok:
                         odd_type = [type(n) for n in sample]
                 elif function.__name__ == "insert":
+                    # For insert, check element being inserted at index
                     type_ok = isinstance(pos_args[1], type_to_check)
                     if not type_ok:
                         odd_type = type(pos_args[1])
 
+                # Report type mismatch if found
                 if not type_ok:
                     self.add_finding(
                         iid,

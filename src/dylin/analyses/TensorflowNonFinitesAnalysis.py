@@ -4,6 +4,7 @@ import tensorflow as tf
 
 
 class TensorflowNonFinitesAnalysis(BaseDyLinAnalysis):
+    # Detect NaN/Inf values entering or produced by TensorFlow operations
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         tf.get_logger().setLevel("INFO")
@@ -21,12 +22,15 @@ class TensorflowNonFinitesAnalysis(BaseDyLinAnalysis):
                 # Some uncommon exceptions for e can be thrown which do not
                 # contain a message attribute as expected
                 if "Tensor had" in e.message:
+                    # TensorFlow reports numerical issue through exception message
                     return True
             except Exception:
+                # If exception shape is unexpected, skip to avoid false positives
                 return False
         return False
 
     def check_tf_issue_found(self, value: any) -> bool:
+        # Helper gate: only inspect real TensorFlow tensors
         if isinstance(value, tf.Tensor) and tf.is_tensor(value) and self.check_contains_nan_or_inf(value):
             return True
         return False
@@ -41,13 +45,16 @@ class TensorflowNonFinitesAnalysis(BaseDyLinAnalysis):
         kw_args: Dict,
     ) -> Any:
         # print(f"{self.analysis_name} post_call {iid}")
+        # Ignore degenerate callback where function object is returned
         if result is function:
             return
+        # Merge kwargs and positional args for unified input scanning
         args = list(kw_args.values() if not kw_args is None else []) + list(pos_args if not pos_args is None else [])
         no_nan_in_input = True
 
         for arg in args:
             if self.check_tf_issue_found(arg):
+                # M-26: numerical issue already present in function inputs
                 self.add_finding(
                     iid,
                     dyn_ast,
@@ -58,6 +65,7 @@ class TensorflowNonFinitesAnalysis(BaseDyLinAnalysis):
 
         if self.check_tf_issue_found(result):
             if no_nan_in_input:
+                # M-27: numerical issue appears in output despite clean inputs
                 self.add_finding(
                     iid,
                     dyn_ast,
@@ -66,5 +74,6 @@ class TensorflowNonFinitesAnalysis(BaseDyLinAnalysis):
                 )
 
     def end_execution(self) -> None:
+        # Persist simple inspection statistics for diagnostics
         self.add_meta({"total_tensors_investigated": self.total_tensors_investigated})
         super().end_execution()
