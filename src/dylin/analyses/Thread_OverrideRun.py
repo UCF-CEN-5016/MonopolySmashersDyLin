@@ -25,7 +25,7 @@ class Thread_OverrideRun(BaseDyLinAnalysis):
             source_code = getsource(threading.Thread.run)  
             self.original_run_method_hash = sha256(source_code.encode()).hexdigest()  
         except Exception as e:  
-            # Fallback: Log a warning and set a default value  
+            # Fallback when source introspection fails in some runtimes/environments
             print(f"Warning: Unable to retrieve source code for threading.Thread.run. Exception: {e}")  
             self.original_run_method_hash = None  
 
@@ -33,30 +33,29 @@ class Thread_OverrideRun(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
-        # The target class names for monitoring
+        # Trigger only for threading.Thread.start calls
         targets = ["threading.Thread"]
 
-        # Get the class name
+        # Build fully qualified class name from bound method receiver
         if hasattr(function, '__self__') and hasattr(function.__self__, '__class__'):
             cls = function.__self__.__class__
             class_name = cls.__module__ + "." + cls.__name__
         else:
             class_name = None
 
-        # Check if the class name is the target ones
+        # Apply rule to thread start only
         if class_name in targets:
 
-            # Get the function object
+            # Thread instance whose start() is being invoked
             obj = function.__self__
 
-            # Check if the run method is overridden
+            # Compare run() implementation hash against base Thread.run hash
             sha = sha256(getsource(obj.run).encode()).hexdigest()
             if sha == self.original_run_method_hash:  # method run not overridden
 
-                # argument 'target' not passed in constructor
+                # If neither run override nor target callback exists, thread does no useful work
                 if not hasattr(obj, '_target') or getattr(obj, '_target') is None:
 
-                    # Spec content
                     self.add_finding(
                         iid,
                         dyn_ast,

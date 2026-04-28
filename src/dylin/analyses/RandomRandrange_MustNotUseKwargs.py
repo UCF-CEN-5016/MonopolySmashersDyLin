@@ -21,21 +21,20 @@ class RandomRandrange_MustNotUseKwargs(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
-        # The target class names for monitoring
+        # Restrict rule to stdlib random module functions
         targets = ["random"]
 
-        # Get the class name
+        # Resolve module name of called function
         if hasattr(function, '__module__'):
             class_name = function.__module__
         else:
             class_name = None
 
-        # Check if the class name is the target ones
+        # Analyze only random.randrange calls
         if class_name in targets:
 
-            # Spec content
+            # Keyword args for randrange can be ambiguous and are discouraged by docs
             if kw_args:
-                # Spec content
                 self.add_finding(
                     iid,
                     dyn_ast,

@@ -9,6 +9,7 @@ from sklearn.base import BaseEstimator
 
 
 class InconsistentPreprocessing(BaseDyLinAnalysis):
+    # Detect train/test preprocessing mismatches by marking transformed data objects
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.analysis_name = "InconsistentPreprocessing"
@@ -17,16 +18,19 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
         self.markings_storage = defaultdict(set)
 
         def cleanup(x: any):
+            # Remove stale markings when tracked objects are garbage-collected
             if x in self.markings_storage:
                 self.markings_storage[x] = set()
 
         add_cleanup_hook(lambda x: cleanup(x))
 
     def read_subscript(self, dyn_ast, iid, base, sl, val):
+        # Propagate transformed marking through indexing operations
         if save_uid(base) in self.markings_storage and len(self.markings_storage[save_uid(base)]) != 0:
             self.markings_storage[uniqueid(val)].add("transformed")
 
     def read_attribute(self, dyn_ast, iid, base, name, val):
+        # Propagate transformed marking through attribute access
         if save_uid(base) in self.markings_storage and len(self.markings_storage[save_uid(base)]) != 0:
             self.markings_storage[uniqueid(val)].add("transformed")
 
@@ -39,6 +43,7 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
         pos_args: Tuple,
         kw_args: Dict,
     ) -> Any:
+        # Ignore degenerate callback where result is function object itself
         if result is function:
             return
         try:
@@ -49,22 +54,23 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
         if _self is None:
             return
 
+        # Track both explicit call args and bound instance as potential taint carriers
         in_args = list(kw_args.values() if not kw_args is None else []) + list(pos_args if not pos_args is None else [])
 
         in_args.append(_self)
 
         if function.__name__ == "fit_transform" and isinstance(_self, TransformerMixin):
-            # source
+            # Source: fit_transform marks both transformer state and returned data as transformed
             self.markings_storage[uniqueid(result)].add("transformed")
             self.markings_storage[uniqueid(_self)].add("transformed")
         elif function.__name__ == "transform" and isinstance(_self, TransformerMixin):
-            # source
+            # Source: transform marks returned data as transformed
             self.markings_storage[uniqueid(result)].add("transformed")
         elif function.__name__ == "fit" and isinstance(_self, TransformerMixin):
-            # source
+            # Source: fit marks transformer as having learned transformation state
             self.markings_storage[uniqueid(_self)].add("transformed")
         elif function.__name__ == "predict" and isinstance(_self, BaseEstimator):
-            # sink
+            # Sink: predict should receive either all-transformed inputs or none (avoid inconsistencies)
             in_args = list(pos_args if not pos_args is None else []) + [_self]
 
             count = len(in_args)
@@ -81,7 +87,7 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
                 )
 
         else:
-            # propagate marking
+            # Default propagation: any transformed input can mark outputs/estimators as transformed
             is_arg_marked = any(
                 [
                     (save_uid(arg) in self.markings_storage and len(self.markings_storage[save_uid(arg)]) > 0)
@@ -97,6 +103,7 @@ class InconsistentPreprocessing(BaseDyLinAnalysis):
             )
 
             if is_arg_marked and function.__name__ == "fit" and isinstance(_self, BaseEstimator):
+                # If estimator fits on transformed data, mark estimator state as transformed-dependent
                 self.markings_storage[uniqueid(_self)].add("transformed")
 
             if not type(result) is tuple and not type(result) is list:

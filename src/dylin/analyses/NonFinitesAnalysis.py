@@ -5,6 +5,7 @@ import numpy as np
 
 
 class NonFinitesAnalysis(BaseDyLinAnalysis):
+    # Detect non-finite values (NaN/Inf) flowing through numpy/pandas operations
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.analysis_name = "NonFinitesAnalysis"
@@ -12,10 +13,12 @@ class NonFinitesAnalysis(BaseDyLinAnalysis):
         self.total_values_investigated = 0
 
     def can_be_checked_with_numpy(self, value: any) -> bool:
+        # Restrict checks to data containers supported by numpy isinf
         return isinstance(value, np.ndarray) or isinstance(value, pd.DataFrame)
 
     def numpy_check_not_finite(self, df: any) -> bool:
         try:
+            # Vectorized finite check over full array/dataframe
             is_inf = np.isinf(df)
             self.total_values_investigated = self.total_values_investigated + 1
             try:
@@ -23,11 +26,14 @@ class NonFinitesAnalysis(BaseDyLinAnalysis):
                 result = True in is_inf.values
                 return result
             except AttributeError as e:
+                # Numpy arrays do not expose .values
                 return True in is_inf
         except TypeError as e:
+            # Unsupported dtypes/objects for isinf should be treated as non-actionable
             return False
 
     def check_np_issue_found(self, value: any) -> bool:
+        # Helper: only report issue when value is checkable and contains non-finites
         if self.can_be_checked_with_numpy(value) and self.numpy_check_not_finite(value):
             return True
         return False
@@ -42,13 +48,16 @@ class NonFinitesAnalysis(BaseDyLinAnalysis):
         kw_args: Dict,
     ) -> Any:
         # print(f"{self.analysis_name} post_call {iid}")
+        # Ignore degenerate callbacks where function object is returned directly
         if result is function:
             return
+        # Flatten kwargs + positional args into one sequence for input validation
         args = list(kw_args.values() if not kw_args is None else []) + list(pos_args if not pos_args is None else [])
         no_nan_in_input = True
 
         for arg in args:
             if self.check_np_issue_found(arg):
+                # M-32: non-finite values already present at function inputs
                 self.add_finding(
                     iid,
                     dyn_ast,
@@ -59,6 +68,7 @@ class NonFinitesAnalysis(BaseDyLinAnalysis):
 
         if self.check_np_issue_found(result):
             if no_nan_in_input:
+                # M-33: non-finite values appear in output but not inputs (function may introduce issue)
                 self.add_finding(
                     iid,
                     dyn_ast,
@@ -67,5 +77,6 @@ class NonFinitesAnalysis(BaseDyLinAnalysis):
                 )
 
     def end_execution(self) -> None:
+        # Emit lightweight execution stats for this analysis instance
         self.add_meta({"total_values_investigated": self.total_values_investigated})
         super().end_execution()

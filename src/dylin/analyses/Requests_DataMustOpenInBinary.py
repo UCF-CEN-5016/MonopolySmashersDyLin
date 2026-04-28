@@ -22,23 +22,24 @@ class Requests_DataMustOpenInBinary(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
-        # The target class names for monitoring
+        # Restrict check to requests.post API implementation
         targets = ["requests.api"]
 
-        # Get the class name
+        # Resolve function module for API filtering
         if hasattr(function, '__module__'):
             class_name = function.__module__
         else:
             class_name = None
 
-        # Check if the class name is the target ones
+        # Analyze only targeted requests call sites
         if class_name in targets:
 
-            # Check if the data is a file
+            # Inspect common upload kwargs that may hold file-like objects
             kwords = ['data', 'files']
             for k in kwords:
                 if k in kw_args:
                     data = kw_args[k]
+                    # Text-mode handles can misreport content length and break uploads
                     if hasattr(data, 'read') and hasattr(data, 'mode') and 'b' not in data.mode:
 
                         # Spec content

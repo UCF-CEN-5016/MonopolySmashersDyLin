@@ -22,24 +22,25 @@ class Session_DataMustOpenInBinary(BaseDyLinAnalysis):
     def pre_call(
         self, dyn_ast: str, iid: int, function: Callable, pos_args: Tuple, kw_args: Dict
     ) -> None:
-        # The target class names for monitoring
+        # Restrict check to requests Session.post bound method calls
         targets = ["requests.sessions.Session"]
 
-        # Get the class name
+        # Build fully qualified class name from the bound receiver object
         if hasattr(function, '__self__') and hasattr(function.__self__, '__class__'):
             cls = function.__self__.__class__
             class_name = cls.__module__ + "." + cls.__name__
         else:
             class_name = None
 
-        # Check if the class name is the target ones
+        # Analyze only requests Session.post calls
         if class_name in targets:
 
-            # Spec content
+            # Inspect common upload kwargs that may carry file-like objects
             kwords = ['data', 'files']
             for k in kwords:
                 if k in kw_args:
                     data = kw_args[k]
+                    # Flag text-mode handles because multipart length handling expects bytes
                     if hasattr(data, 'read') and hasattr(data, 'mode') and 'b' not in data.mode:
 
                         # Spec content

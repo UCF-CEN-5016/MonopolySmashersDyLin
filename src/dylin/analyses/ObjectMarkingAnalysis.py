@@ -55,12 +55,16 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
     """
 
     def __init__(self, **kwargs):
+        # Default analysis name may be overwritten by YAML config `name`
         self.analysis_name = "ObjectMarkingAnalysis"
+        # Runtime map: object-uid -> StoredElement(markings, location)
         self.stored_elements = {}
+        # Source/sink registries populated from YAML configuration
         self.sources = {}
         self.sinks = {}
         self.log = []
         if "config" in kwargs:
+            # Load taint rules before base class startup so hooks have full config
             self.load_config(kwargs["config"])
             del kwargs["config"]
         else:
@@ -68,6 +72,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         super().__init__(**kwargs)
 
     def setup(self):
+        # Legacy setup path: build YAML path from metadata when config passed indirectly
         config_name: str = self.meta.get("configName")
         if not config_name.endswith(".yml"):
             config_name += ".yml"
@@ -83,16 +88,19 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         self.load_config(str(configPath))
 
     def load_config(self, yaml_path: str) -> models.TaintConfig:
+        # Parse taint configuration (markings, sources, sinks, validation logic)
         with open(yaml_path, "r") as yaml_str:
             yml = yaml.safe_load(yaml_str)
 
         name = yml.get("name")
         if name:
+            # Allow config to rename analysis for clearer output grouping
             self.analysis_name = name
 
         # load markings
         markings = {}
         for key, marking in yml["markings"].items():
+            # Build marking objects once and reuse by symbolic key in config
             markings[key] = models.Marking(marking["name"])
 
         # load sources
@@ -101,18 +109,23 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
             m = set()
             source = yml["sources"][key]
             for m_key in source["associated_markings"]:
+                # Resolve symbolic marking references to concrete Marking objects
                 m.add(markings[m_key])
             f_string = source.get("function")
             resulting_function = None
             if f_string == "disjunctive_union":
+                # Custom propagation strategy: keep only markings not in associated set
                 resulting_function = models.disjunctive_union
             elif f_string == "clear":
+                # Sanitization strategy: remove associated markings
                 resulting_function = models.clear
             else:
+                # Default propagation strategy: union of input markings
                 resulting_function = models.union
 
             if "qualnames" in source:
                 for qualname in source["qualnames"]:
+                    # Register one source rule under multiple qualified function names
                     sources[qualname] = models.Source(m, resulting_function)
             else:
                 sources[key] = models.Source(m, resulting_function)
@@ -131,14 +144,17 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
             f_string = sink["validate"]["name"]
             resulting_function = None
             if f_string == "contains_all":
+                # Trigger when all required markings are present
                 resulting_function = models.contains_all
             elif f_string == "contains":
+                # Trigger when at least one required marking is present
                 resulting_function = models.contains
             elif f_string == "not_all_given_args_contain":
                 resulting_function = models.not_all_given_args_contain
             elif f_string == "not_all_or_none_contains":
                 resulting_function = models.not_all_or_none_contains
             elif f_string == "first_contains_all":
+                # Trigger when first arg/self carries all required markings
                 resulting_function = models.first_contains_all
             # error message
             error_msg = sink["error_msg"]
@@ -146,10 +162,12 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
             # args
             args = list()
             for arg in sink.get("args") if sink.get("args") else list():
+                # Optional sink arg selectors narrow which input positions are validated
                 args.append(arg)
 
             if "qualnames" in sink:
                 for qualname in sink["qualnames"]:
+                    # Register same sink rule for multiple APIs/qualified names
                     sinks[qualname] = models.Sink(m, error_msg, args, resulting_function)
             else:
                 sinks[key] = models.Sink(m, error_msg, args, resulting_function)
@@ -161,6 +179,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
     # the order of arguments of the original method signature
     # if method contains __self__ its the first argument, if not we ignore it
     def _get_in_markings(self, pos_args: Tuple, kw_args: Dict, _self: Optional[Any]) -> List[Set[models.Marking]]:
+        # Build ordered marking sets for self + positional args + keyword args
         in_markings = []
         if not _self is None:
             element = self.stored_elements.get(save_uid(_self))
@@ -192,6 +211,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         kw_args: Dict,
     ) -> Any:
         # print(f"{self.analysis_name} post_call {iid} {function.__name__}")
+        # Ignore pathological self-returned function objects (no meaningful taint transfer)
         if result is function:
             return
         function_is_of_interest = False
@@ -203,15 +223,18 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         try:
             is_source = func_name in self.sources
         except TypeError:
+            # Some non-hashable/function-proxy names cannot be used for dict lookup
             return None
         if is_source:
             source: models.Source = self.sources[func_name]
             _self = getattr(function, "__self__", lambda: None)
+            # Compute output markings based on configured source propagation strategy
             out_markings = source.get_output_markings(self._get_in_markings(pos_args, kw_args, _self))
 
             # TODO store markings to arguments as well if desired
             if source.assign_to_output and not result is None:
                 if type(result) is tuple:
+                    # Multi-return functions: taint each returned element independently
                     for r in result:
                         self.stored_elements[uniqueid(r)] = models.StoredElement(out_markings, (iid, None, func_name))
                 else:
@@ -223,6 +246,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
         if func_name in self.sinks:
             sink: models.Sink = self.sinks[func_name]
             _self = getattr(function, "__self__", lambda: None)
+            # Validate current input markings against sink policy; returns issue code/message on failure
             error = sink.get_result(self._get_in_markings(pos_args, kw_args, _self))
             if error:
                 _selfstr = str(self.stored_elements.get(save_uid(_self)))
@@ -249,6 +273,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
             """
 
             if not type(result) is tuple and not type(result) is list:
+                # Avoid overwriting markings when instrumented function already stored explicit result markings
                 is_result_stored = self.stored_elements.get(save_uid(result)) != None
 
                 if not result is None and len(out_markings_result) > 0 and not is_result_stored:
@@ -256,6 +281,7 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
                         out_markings_result, (iid, None, func_name)
                     )
             else:
+                # For tuple/list outputs, apply same propagation to each contained value
                 i = 0
                 for r in result:
                     is_result_stored = self.stored_elements.get(save_uid(result)) != None
@@ -269,8 +295,10 @@ class ObjectMarkingAnalysis(BaseDyLinAnalysis):
     def function_exit(self, dyn_ast: str, iid: int, name: str, result: Any) -> Any:
         # print(f"{self.analysis_name} function_exit {name} {iid} {dyn_ast}")
         # TODO ignore return value of function which calls cleanup
+        # Clear temporary uid fallbacks after each function boundary
         cleanup()
 
     def end_execution(self) -> None:
+        # Persist a short snapshot of tracked tainted objects for debugging purposes
         self.add_meta(f"stored elements {len(self.stored_elements)}, {list(self.stored_elements.values())[:100]}")
         super().end_execution()

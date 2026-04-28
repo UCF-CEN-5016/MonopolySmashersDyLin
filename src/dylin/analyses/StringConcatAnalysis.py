@@ -25,25 +25,32 @@ Discussion:
 
 
 class StringConcatAnalysis(BaseDyLinAnalysis):
+    # Detect heavy runtime string concatenation with + / += where ''.join(...) is usually better
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Per-location counters keyed by iid + AST location
         self.concats = {}
         self.adds = {}
         self.analysis_name = "StringConcatAnalysis"
         self.last_add_operation = None
+        # Minimum number of concatenations at same location before flagging
         self.threshold = 10000
 
     def add_assign(self, dyn_ast: str, iid: int, left: Any, right: Any) -> None:
         # for some reason left is a lambda
         # print(f"{self.analysis_name} += {iid}")
+        # For `x += y`, check right-hand side type and update hot-spot counter
         self._check(dyn_ast, iid, right)
 
     def _check(self, dyn_ast: str, iid: int, right: Any, result: Any = None) -> None:
+        # Track only string concatenation events
         if isinstance(right, type("")):
             key = str(iid) + "_" + dyn_ast
             if key not in self.concats:
+                # First observation at this location
                 self.concats[key] = 1
             elif self.concats[key] != -1:
+                # Increment until finding is reported; -1 means already reported
                 self.concats[key] += 1
             if self.concats[key] > self.threshold:
                 self.add_finding(
@@ -52,6 +59,7 @@ class StringConcatAnalysis(BaseDyLinAnalysis):
                     "A-05",
                     "attempted to concat strings alot with + operator",
                 )
+                # Disable further reports for same location to avoid duplicates
                 self.concats[key] = -1
 
     # Removed below hooks for performance reasons
