@@ -128,3 +128,13 @@ To calculate the ratio of analysis coverage to test coverage you can run
 python scripts/coverage_report.py coverage_comparison --analysis_dir <path to the subdirectory in project_results> --test_dir <path to the subdirectory in project_testcovs>
 ```
 This generates a csv file with a summary of analysis and test coverage similar to `Supplementary_Material_FSE2025/DyLin - FSE 2025 Artifact.pdf` page 1.
+
+## Run a Smaller Subset
+
+If you do not want to run the full pipeline on every project, use `run_subset.sh`.
+
+This script runs DyLin and the comparison steps on a smaller, selected set of project IDs.  
+It is meant for quicker runs while still following the same workflow as the full pipeline.
+
+```bash
+bash run_subset.sh
