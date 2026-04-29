@@ -18,6 +18,32 @@ To install requirements for a local (not in a container) run:
 pip install -r requirements.txt
 ```
 
+## Build-All / Run-All Pipeline
+If you want to set up and execute the full experiment pipeline in one go, use `build_and_run.sh`.
+This script is the end-to-end entrypoint that prepares the environment and runs the complete workflow.
+
+```bash
+bash build_and_run.sh
+```
+
+If you already have the Docker images built, skip rebuilds with:
+```bash
+bash build_and_run.sh --no-build
+```
+This reuses existing images and avoids rebuilding them on every run.
+
+Additional stage flags:
+- `--test` runs the test stage (`pip install -r requirements-tests.txt` + `pytest tests`).
+- `--cov` runs dynamic analysis with coverage (`bash run_all_with_cov.sh`).
+- `--no_cov` runs dynamic analysis without coverage (`bash run_all_no_cov.sh`).
+- `--static_linters` runs static linter execution and static-vs-dynamic comparison.
+- `--coverage` runs the Stage 7 test-coverage reporting pipeline.
+
+By default, these stages are considered enabled when flags are omitted.
+
+Use this when you want the full pipeline ready with a single command.
+The detailed step-by-step breakdown still exists in the sections below.
+
 ## Checkers
 The checkers are implemented in `src/dylin/analyses`.
 
@@ -150,6 +176,17 @@ python scripts/coverage_report.py coverage_comparison \
   --test_dir project_testcovs
 ```
 This generates a csv file with a summary of analysis and test coverage similar to `Supplementary_Material_FSE2025/DyLin - FSE 2025 Artifact.pdf` page 1.
+
+## Run a Smaller Subset
+
+If you do not want to run the full pipeline on every project, use `run_subset.sh`.
+
+This script runs DyLin and the comparison steps on a smaller, selected set of project IDs.  
+It is meant for quicker runs while still following the same workflow as the full pipeline.
+
+```bash
+bash run_subset.sh
+```
 
 Notes:
 
